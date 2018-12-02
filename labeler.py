@@ -1,9 +1,11 @@
 import pandas as pd
-import numpy as np
 import json as js
 
 def read_books():
     return pd.read_csv("./books.csv", sep=';', low_memory=False)
+
+def read_ratings():
+    return pd.read_csv("./ratings.csv", sep=';', low_memory=False)
 
 def write_dict(dict1):
     json = js.dumps(dict1)
@@ -28,7 +30,8 @@ def main():
         dict1[index] = i
         index += 1
 
-    # a = read_dict("./isbn-to-id.json")
+    write_dict(dict1)
+
     # n_items = {k: a[k] for k in list(a)[:10]}
 
     # print(dict['0767409752'])
