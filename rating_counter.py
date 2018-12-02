@@ -2,24 +2,23 @@ import pandas as pd
 import labeler as lbl
 
 def read_ratings():
-    return pd.read_csv("./ratings.csv", sep=';', low_memory=False)
+    return pd.read_csv("./modified_ratings.csv", sep=',', low_memory=False)
 
 def main():
     ratings = read_ratings()
+    users = ratings.iloc[:, 0:1]
 
-    isbn_dict = lbl.read_dict("./isbn-to-id.json")
-    book_list = list(isbn_dict.keys())
+    users_list = sorted(users["User-ID"].tolist())
+    _dict = {}
 
-    _list = []
+    for i in users_list:
+        x = _dict.get(i, -1)
+        if x == -1:
+            _dict[i] = 1
+        else:
+            _dict[i] = x + 1
 
-    for index, row in ratings.iterrows():
-        if row["ISBN"] in book_list:
-            _list.append(row)
+    # print(_dict)
+    lbl.write_dict(_dict, "user-ratings-count")
 
-    new_df = pd.DataFrame(_list, columns=['User-ID', 'ISBN', 'Book-Rating'])
-
-    # print(new_df.head())
-    # print(len(new_df))
-    new_df.to_csv("./modified_ratings.csv", index=False, encoding="utf-8")
-
-# main()
+main()

@@ -7,9 +7,9 @@ def read_books():
 def read_ratings():
     return pd.read_csv("./ratings.csv", sep=';', low_memory=False)
 
-def write_dict(dict1):
+def write_dict(dict1, filename):
     json = js.dumps(dict1)
-    f = open("id-to-isbn.json", "w")
+    f = open(filename + ".json", "w")
     f.write(json)
     f.close()
 
@@ -38,5 +38,5 @@ def main():
     # print(isbn_list)
     # print(isbn.head())
 
-main()
+# main()
 
