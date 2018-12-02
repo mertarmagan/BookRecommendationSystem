@@ -11,6 +11,12 @@ def write_dict(dict1):
     f.write(json)
     f.close()
 
+def read_dict(path):
+    f = open(path)
+    dict1 = js.load(f)
+    f.close()
+    return dict1
+
 def main():
     books = read_books()
     isbn = books.iloc[:, 0:1]
@@ -22,10 +28,12 @@ def main():
         dict1[index] = i
         index += 1
 
-    # n_items = {k: dict1[k] for k in list(dict1)[:10]}
+    # a = read_dict("./isbn-to-id.json")
+    # n_items = {k: a[k] for k in list(a)[:10]}
 
     # print(dict['0767409752'])
     # print(isbn_list)
     # print(isbn.head())
 
 main()
+
