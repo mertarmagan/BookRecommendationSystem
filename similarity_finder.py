@@ -1,4 +1,5 @@
 import pandas as pd
+import labeler
 
 def read_train(path):
     return pd.read_csv(path, sep=",", low_memory=False)
@@ -53,6 +54,7 @@ def find_similarity(df, x, y):
             y_dict[row["User-ID"]] = row["Book-Rating"]
 
     # print(x_dict)
+    # print(y_dict)
 
     res_x_dict = {}
     res_y_dict = {}
@@ -62,8 +64,8 @@ def find_similarity(df, x, y):
             res_y_dict[item] = y_dict[item]
             res_x_dict[item] = x_dict[item]
 
-    print(res_x_dict)
-    print(res_y_dict)
+    # print(res_x_dict)
+    # print(res_y_dict)
 
     mean_x = find_mean(x_dict)
     mean_y = find_mean(y_dict)
@@ -76,8 +78,8 @@ def find_similarity(df, x, y):
         val = y_dict[i]
         y_dict[i] = val - mean_y
 
-    print(x_dict)
-    print(y_dict)
+    # print(x_dict)
+    # print(y_dict)
 
     sum = 0
     sum_x = 0
@@ -95,12 +97,52 @@ def find_similarity(df, x, y):
     sum_x = sum_x ** (1/2)
     sum_y = sum_y ** (1/2)
 
-    sim = sum / (sum_x * sum_y)
+    # if sum_x == 0:
+    #     sum_x = 1
+    #
+    # if sum_y == 0:
+    #     sum_y = 1
 
+    sim = sum / (sum_x * sum_y)
     return sim
+
+def generate_similarity_matrix():
+    isbn = labeler.read_dict('./json-outputs/id-to-isbn.json')
+    ratings = read_train('./modified-csv/shuffled_ratings.csv')
+
+    pd.options.display.max_columns = len(isbn)
+    pd.options.display.max_rows = len(isbn)
+
+    m = []
+    r = []
+
+    for index, value in isbn.items():
+        for inner_index, inner_value in isbn.items():
+            if inner_index > index:
+                print(inner_value)
+                r.append(find_similarity(ratings, value, inner_value))
+                # df.iloc[int(index), int(inner_index)] =
+        m.append(r)
+
+    df = pd.DataFrame(m, columns=isbn.keys(), index=None)
+    # for i in range(1, 7):
+    #     for j in range(1, 7):
+    #         if j >= i:
+    #             print("sa")
+    #             df.iloc[i-1, j-1] = find_similarity(ratings, i, j)
+    #
+    # print(df)
+    df.to_csv("./similarity-matrix.csv", index=False, encoding="utf-8")
+
 
 def main():
     train = read_train("./ex_similarity/train.csv")
-    print(find_similarity(train, 1, 3))
+    # print(find_similarity(train, 1, 3))
+    # generate_similarity_matrix()
+
+    # ratings = read_train('./modified-csv/shuffled_ratings.csv')
+    # ratings.sort_values(by='ISBN', ascending=True, kind='mergesort')
+    #
+    # ratings.to_csv("./sorted.csv", index=False, encoding="utf-8")
 
 main()
