@@ -102,6 +102,6 @@ def find_similarity(df, x, y):
 
 def main():
     train = read_train("./ex_similarity/train.csv")
-    print(find_similarity(train, 1, 6))
+    print(find_similarity(train, 1, 3))
 
 main()

@@ -3,7 +3,7 @@ import labeler as lbl
 import csv
 
 def read_ratings():
-    return pd.read_csv("./modified_ratings.csv", sep=';', low_memory=False)
+    return pd.read_csv("./modified-csv/modified_ratings.csv", sep=';', low_memory=False)
 
 def main():
     ratings = read_ratings()
@@ -12,7 +12,7 @@ def main():
 
     # ratings.to_csv("./shuffled_ratings.csv", index=False, encoding="utf-8", quoting=csv.QUOTE_NONE, quotechar="", escapechar="\\")
 
-    isbn_dict = lbl.read_dict("./isbn-to-id.json")
+    isbn_dict = lbl.read_dict("./json-outputs/isbn-to-id.json")
     book_list = list(isbn_dict.keys())
 
     _list = []
@@ -25,6 +25,6 @@ def main():
 
     # print(new_df.head())
     # print(len(new_df))
-    new_df.to_csv("./modified_ratings.csv", index=False, encoding="utf-8")
+    new_df.to_csv("./modified-csv/modified_ratings.csv", index=False, encoding="utf-8")
     return
 # main()
