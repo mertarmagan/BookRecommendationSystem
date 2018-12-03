@@ -15,7 +15,6 @@ def kfold_split(dataset, folds = 10):
         train.to_csv("./partition/train{}.csv".format(i+1), index=False, encoding="utf-8")
 
 def main():
-    set = [[1,2], [4,5], [7,8], [1,3], [12, 4], [30, 52]]
     df = pd.read_csv("./shuffled_ratings.csv", sep=',', low_memory=False)
     kfold_split(df, 10)
 
