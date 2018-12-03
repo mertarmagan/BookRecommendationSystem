@@ -15,4 +15,4 @@ sum = 0
 for j in range(0, sim_matrix.shape[0]):
     if not np.isnan(sim_matrix.iloc[i,j]):
         bxj = u + usr_dev.iloc[x] + bk_dev.iloc[j]
-        sum = sum + (sim_matrix.iloc[i,j] * (ratings_matrix.iloc[x,j] - bxj)
+        # sum = sum + (sim_matrix.iloc[i,j] * (ratings_matrix.iloc[x,j] - bxj)

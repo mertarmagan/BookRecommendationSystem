@@ -97,7 +97,6 @@ def find_similarity(df, x, y):
 
     sim = sum / (sum_x * sum_y)
 
-    # print("sum:", sum)
     return sim
 
 def main():
