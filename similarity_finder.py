@@ -30,10 +30,19 @@ def sample_generator():  # Example from slide 43
     print("No. of rows: ", len(df))
     df.to_csv("./ex_similarity/train.csv", index=False, encoding="utf-8")
 
-def find_ratings(df, x, y):
+def sample_generator2():  # Example from slide 37
+    sample = [["1", "1", 4], ["1", "4", 5], ["1", "5", 1],
+              ["2", "1", 5], ["2", "2", 2], ["2", "3", 5],
+              ["3", "4", 2], ["3", "5", 4], ["3", "6", 5],
+              ["4", "2", 3], ["4", "7", 3]]
+
+    df = pd.DataFrame(sample, columns=["User-ID", "ISBN", "Book-Rating"])
+    print("No. of rows: ", len(df))
+    df.to_csv("./ex_similarity/train2.csv", index=False, encoding="utf-8")
+
+def find_similarity(df, x, y):
     x_dict = {}
     y_dict = {}
-    result_dict = {}
 
     for index, row in df.iterrows():
         if row["ISBN"] == x:
@@ -53,8 +62,8 @@ def find_ratings(df, x, y):
             res_y_dict[item] = y_dict[item]
             res_x_dict[item] = x_dict[item]
 
-    result_dict[x] = res_x_dict
-    result_dict[y] = res_y_dict
+    print(res_x_dict)
+    print(res_y_dict)
 
     mean_x = find_mean(x_dict)
     mean_y = find_mean(y_dict)
@@ -74,30 +83,25 @@ def find_ratings(df, x, y):
     sum_x = 0
     sum_y = 0
 
+    for i in x_dict:
+        sum_x += x_dict[i] ** 2
+
+    for i in y_dict:
+        sum_y += y_dict[i] ** 2
+
     for i in res_x_dict:
         sum += x_dict[i] * y_dict[i]
-        sum_x += x_dict[i] ** 2
-        sum_y += y_dict[i] ** 2
 
     sum_x = sum_x ** (1/2)
     sum_y = sum_y ** (1/2)
-
-    # print(0.543257443 ** 2)
 
     sim = sum / (sum_x * sum_y)
 
     # print("sum:", sum)
     return sim
 
-def find_similarity(df, x, y):
-    sim = 0
-    print(find_ratings(df, x, y))
-
-
-    return sim
-
 def main():
     train = read_train("./ex_similarity/train.csv")
-    print(find_similarity(train, 1, 3))
+    print(find_similarity(train, 1, 6))
 
 main()
