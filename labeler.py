@@ -9,7 +9,7 @@ def read_ratings():
 
 def write_dict(dict1, filename):
     json = js.dumps(dict1)
-    f = open(filename + ".json", "w")
+    f = open("./json-outputs/" + filename + ".json", "w")
     f.write(json)
     f.close()
 

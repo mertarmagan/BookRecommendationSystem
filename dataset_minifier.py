@@ -1,7 +1,5 @@
 import pandas as pd
 import labeler as lb
-import numpy as np
-from scipy.sparse import csr_matrix
 
 def replaceISBN():
     df = pd.read_csv("./modified-csv/modified_ratings.csv")
@@ -16,15 +14,22 @@ def replaceISBN():
 
     df.to_csv("./modified-csv/ratings_with_id.csv", index=False, encoding="utf-8")
 
-def sortDataset():
+def sortDatasetBook():
     df = pd.read_csv("./modified-csv/ratings_with_id.csv")
     # df["Book_ID"] = pd.to_numeric(df.Book_ID, errors="coerce")
     df.Book_ID = df.Book_ID.astype(int)
     df = df.sort_values(by='Book_ID', ascending=True, kind='quicksort')
-    df.to_csv("./modified-csv/sorted_ratings.csv", index=False, encoding="utf-8")
+    df.to_csv("./modified-csv/sorted_book_ratings.csv", index=False, encoding="utf-8")
 
-def findIndexLength():
-    df = pd.read_csv("./modified-csv/sorted_ratings.csv")
+def sortDatasetUser():
+    df = pd.read_csv("./modified-csv/ratings_with_id.csv")
+    # df["Book_ID"] = pd.to_numeric(df.Book_ID, errors="coerce")
+    df.User_ID= df.User_ID.astype(int)
+    df = df.sort_values(by='User_ID', ascending=True, kind='quicksort')
+    df.to_csv("./modified-csv/sorted_user_ratings.csv", index=False, encoding="utf-8")
+
+def findIndexLengthBooks():
+    df = pd.read_csv("./modified-csv/sorted_book_ratings.csv")
 
     id_list = df.Book_ID.tolist()
 
@@ -36,26 +41,39 @@ def findIndexLength():
         sub_dic["length"] = 1
         main_dic[id_list[i]] = sub_dic
 
-    # print(main_dic)
+    for i in range(len(id_list)-1):
+        if id_list[i] == id_list[i+1]:
+            main_dic[id_list[i]]["length"] += 1
+        else:
+            main_dic[id_list[i+1]]["start"] = i+1
 
-    # count = range(0, len(df))
+    lb.write_dict(main_dic, "book-start-length")
+    print(main_dic)
+
+def findIndexLengthUsers():
+    df = pd.read_csv("./modified-csv/sorted_user_ratings.csv")
+
+    id_list = df.User_ID.tolist()
+
+    main_dic = {}
+
+    for i in range(len(df)):
+        sub_dic = {}
+        sub_dic["start"] = 0
+        sub_dic["length"] = 1
+        main_dic[id_list[i]] = sub_dic
 
     for i in range(len(id_list)-1):
         if id_list[i] == id_list[i+1]:
             main_dic[id_list[i]]["length"] += 1
         else:
             main_dic[id_list[i+1]]["start"] = i+1
-        # if id_list[i] == count[j]:
-        #     main_dic[id_list[j]["start"]] = i
-        # else:
-        #     j += 1
-        #     main_dic[id_list[j]["start"]] = i
 
-    lb.write_dict(main_dic, "book-start-length")
+    lb.write_dict(main_dic, "user-start-length")
     print(main_dic)
 
-    # lb.write_dict()
-
 # replaceISBN()
-# sortDataset()
-findIndexLength()
+# sortDatasetBook()
+# findIndexLengthBooks()
+sortDatasetUser()
+findIndexLengthUsers()
