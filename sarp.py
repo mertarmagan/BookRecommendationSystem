@@ -75,33 +75,93 @@ def find_mean(_dict):
 
     return mean
 
-def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, i, u):
+def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, i, u):    
+    
     bxi = u + user_dev[x] + book_dev[i]
     
-    max1 = 0
-    max2 = 0
+    # print("bxi: ", bxi)
+    sum = 0
+    total = 0
+
+    sims = np.array([[ None, None]])
 
     for item in book_distinct:
-        sim = find_similarity(train, i, item)
-        print(item, sim)
+        if item != i:
+            for index, user in train.iterrows():
+                if user["ISBN"] == item and user["User-ID"] == x:
+                    sim = find_similarity(train, i, item)
+                    
+                    bxj = u + user_dev[x] + book_dev[item]
+                                        
+                    rxj = 0
+                    for index, row in train.iterrows():
+                        if row["User-ID"] == user["User-ID"] and row["ISBN"] == item:
+                            rxj = row["Book-Rating"]
+                            # print("user:", x, "book:", row["ISBN"], "rxj: ", rxj)
 
-    # for j in range(0, book_distinct[0]):
-    #     if i is not j:
-    #         if max2 == max1:
-    #             max2 = find_similarity(train, i, j)
-    #         else:
-    #             max1 = find_similarity(train, i, j)
-    #             if max1 < max2:
-    #                 temp = max2
-    #                 max2 = max1
-    #                 max1 = temp
+                    sum = sum + (sim * (rxj - bxj))
+                    # print("sim: ",sim, " sum: ", sum)
+                    if sim > 0:
+                        sims = np.append(sims, np.array([[sim, sum]]), axis=0)
+                    # print("sim * (rxj -bxj)", "x", x, "j", item)
 
-    # print(max1, max2)
+        sum = 0
 
-    # for j in range(0, sim_matrix.shape[0]):
-    #     if not np.isnan(sim_matrix.iloc[i,j]):
-    #         bxj = u + usr_dev.iloc[x] + bk_dev.iloc[j]
-    #         # sum = sum + (sim_matrix.iloc[i,j] * (ratings_matrix.iloc[x,j] - bxj)
+    sims = np.delete(sims, 0, 0)
+    k = int(sims.shape[0] / 2 + 1) 
+    # print("k", k)
+    sims = sims[sims[:, 0].argsort()]
+    total = sims[sims.shape[0]-k:sims.shape[0],0]
+    ctr = sims[sims.shape[0]-k:sims.shape[0],1]
+    # print("np.sum(ctr)", np.sum(ctr))
+    # print("np.sum(total)", np.sum(total))
+    
+    rxi = bxi
+    if np.sum(total) != 0:
+        rxi = rxi + np.sum(ctr) / np.sum(total)
+    # print(rxi)
+    return rxi
+
+def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
+
+    prediction = np.zeros(shape=(test.shape[0]), dtype="float")
+
+    for i in range(test.shape[0]):
+        prediction[i] = find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, test[i, 0], test[i, 1], u)
+
+    for i in range(prediction.shape[0]):
+        mse = mse + (prediction[i] - test[i, 2]) ** 2
+    
+    rmse = math.sqrt(mse)
+    print(rmse)
+    return rmse
+
+def conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
+
+    prediction = np.zeros(shape=(test.shape[0]), dtype="float")
+
+    for i in range(test.shape[0]):
+        prediction[i] = find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, test[i, 0], test[i, 1], u)
+
+    tp = 0
+    tn = 0
+    fp = 0
+    fn = 0
+
+    for i in range(prediction.shape[0]):
+        if prediction[i] >= 3:
+            if test[i,2] >= 3:
+                tp = tp + 1
+            else:
+                print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i,0], "book:", test[i,1])
+                fp = fp + 1
+        else:
+            if test[i,2] < 3:
+                tn = tn + 1
+            else:
+                fn = fn + 1
+
+    print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
 
 def find_similarity(df, x, y):
     x_dict = {}
@@ -170,7 +230,6 @@ def find_similarity(df, x, y):
     sim = sum / (sum_x * sum_y)
     return sim
 
-
 def main():
     train = pd.read_csv("./ex_similarity/train.csv", sep=",", low_memory=False)
 
@@ -185,6 +244,8 @@ def main():
             user_distinct = np.append(user_distinct, [train.iloc[i, 0]])
         if train.iloc[i, 1] not in book_distinct:
             book_distinct = np.append(book_distinct, [train.iloc[i, 1]])
+    
+    book_distinct = np.sort(book_distinct)
 
     u = np.average(train.iloc[:, 2])
 
@@ -194,7 +255,9 @@ def main():
     book_dev = dev[1]
     user_dev = dev[0]
 
-    find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, 5, 1, u)
+    # find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, 12, 5, u)
+
+    conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, np.copy(train), u)
 
     # print(u)
 
