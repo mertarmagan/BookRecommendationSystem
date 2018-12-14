@@ -1,4 +1,4 @@
-User-ID,ISBN,Book-Rating
+User_ID,Book_ID,Rating
 1,1,1
 1,3,2
 1,6,1

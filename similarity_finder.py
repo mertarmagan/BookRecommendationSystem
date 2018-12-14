@@ -1,5 +1,5 @@
 import pandas as pd
-import labeler
+import labeler as lb
 
 def read_train(path):
     return pd.read_csv(path, sep=",", low_memory=False)
@@ -41,17 +41,33 @@ def sample_generator2():  # Example from slide 37
     print("No. of rows: ", len(df))
     df.to_csv("./ex_similarity/train2.csv", index=False, encoding="utf-8")
 
-def find_similarity(df, x, y):
+def find_similarity(x, y, df, index_len):  # index_len is json file
     x_dict = {}
     y_dict = {}
 
-    for index, row in df.iterrows():
-        if row["ISBN"] == x:
-            x_dict[row["User-ID"]] = row["Book-Rating"]
+    # df = pd.read_csv("./modified-csv/sorted_book_ratings.csv", sep=",", low_memory=False)
+    # index_len = lb.read_dict("./json-outputs/book-start-length.json")
 
-    for index, row in df.iterrows():
-        if row["ISBN"] == y:
-            y_dict[row["User-ID"]] = row["Book-Rating"]
+    start_x = index_len[x]["start"]
+    len_x = index_len[x]["length"]
+
+    start_y = index_len[y]["start"]
+    len_y = index_len[y]["length"]
+
+    rat_x_df = df.iloc[start_x:(start_x+len_x)]
+    rat_y_df = df.iloc[start_y:(start_y+len_y)]
+
+    for index, row in rat_x_df.iterrows():
+        x_dict[row["User_ID"]] = row["Rating"]
+
+    for index, row in rat_y_df.iterrows():
+        y_dict[row["User_ID"]] = row["Rating"]
+
+    # for index, row in df.iterrows():
+    #     if row["ISBN"] == x:
+    #         x_dict[row["User-ID"]] = row["Book-Rating"]
+    #     if row["ISBN"] == y:
+    #         y_dict[row["User-ID"]] = row["Book-Rating"]
 
     # print(x_dict)
     # print(y_dict)
@@ -69,6 +85,9 @@ def find_similarity(df, x, y):
 
     mean_x = find_mean(x_dict)
     mean_y = find_mean(y_dict)
+
+    if mean_x == 0 or mean_y == 0:
+        return 0
 
     for i in x_dict:
         val = x_dict[i]
@@ -107,7 +126,7 @@ def find_similarity(df, x, y):
     return sim
 
 def generate_similarity_matrix():
-    isbn = labeler.read_dict('./json-outputs/id-to-isbn.json')
+    isbn = lb.read_dict('./json-outputs/id-to-isbn.json')
     ratings = read_train('./modified-csv/shuffled_ratings.csv')
 
     pd.options.display.max_columns = len(isbn)
@@ -136,13 +155,18 @@ def generate_similarity_matrix():
 
 
 def main():
-    train = read_train("./ex_similarity/train.csv")
+    # train = read_train("./ex_similarity/train.csv")
     # print(find_similarity(train, 1, 3))
     # generate_similarity_matrix()
 
-    # ratings = read_train('./modified-csv/shuffled_ratings.csv')
-    # ratings.sort_values(by='ISBN', ascending=True, kind='mergesort')
-    #
-    # ratings.to_csv("./sorted.csv", index=False, encoding="utf-8")
+    # df = pd.read_csv("./modified-csv/sorted_book_ratings.csv", sep=",", low_memory=False)
+    # index_len = lb.read_dict("./json-outputs/book-start-length.json")
 
-main()
+    # df = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
+    # index_len = lb.read_dict("./json-outputs/train-start-length.json")
+
+    # for i in range(1, 7):
+    #     print(find_similarity(str(1), str(i), df, index_len))
+    return
+
+# main()
