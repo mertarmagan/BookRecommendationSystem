@@ -1,8 +1,8 @@
 import pandas as pd
 import labeler as lb
 
-def replaceISBN():
-    df = pd.read_csv("./modified-csv/modified_ratings.csv")
+def replaceISBN(in_df):
+    df = pd.read_csv("./modified-csv/" + in_df + ".csv")
     isbn_id = lb.read_dict("./json-outputs/isbn-to-id.json")
 
     def updateISBN(isbn):
@@ -12,13 +12,13 @@ def replaceISBN():
     df.ISBN = df.ISBN.map(updateISBN)
     df.columns = ["User_ID", "Book_ID", "Rating"]
 
-    df.to_csv("./modified-csv/ratings_with_id.csv", index=False, encoding="utf-8")
+    df.to_csv("./modified-csv/" + in_df + "_withID.csv", index=False, encoding="utf-8")
 
-def sortDatasetBook():
-    df = pd.read_csv("./modified-csv/ratings_with_id.csv")
+def sortDatasetBook(in_df):
+    df = pd.read_csv("./modified-csv/" + in_df + "_withID.csv")
     df.Book_ID = df.Book_ID.astype(int)
     df = df.sort_values(by='Book_ID', ascending=True, kind='quicksort')
-    df.to_csv("./modified-csv/sorted_book_ratings.csv", index=False, encoding="utf-8")
+    df.to_csv("./modified-csv/sorted_book_" + in_df + ".csv", index=False, encoding="utf-8")
 
 def sortDatasetExample():
     df = pd.read_csv("./ex_similarity/train.csv")
@@ -26,11 +26,11 @@ def sortDatasetExample():
     df = df.sort_values(by='Book_ID', ascending=True, kind='quicksort')
     df.to_csv("./ex_similarity/sorted_train.csv", index=False, encoding="utf-8")
 
-def sortDatasetUser():
-    df = pd.read_csv("./modified-csv/ratings_with_id.csv")
+def sortDatasetUser(in_df):
+    df = pd.read_csv("./modified-csv/" + in_df + "_withID.csv")
     df.User_ID= df.User_ID.astype(int)
     df = df.sort_values(by='User_ID', ascending=True, kind='quicksort')
-    df.to_csv("./modified-csv/sorted_user_ratings.csv", index=False, encoding="utf-8")
+    df.to_csv("./modified-csv/sorted_user_" + in_df + ".csv", index=False, encoding="utf-8")
 
 def findIndexLengthExample():
     df = pd.read_csv("./ex_similarity/sorted_train.csv")
@@ -54,8 +54,8 @@ def findIndexLengthExample():
     lb.write_dict(main_dic, "train-start-length")
     print(main_dic)
 
-def findIndexLengthBooks():
-    df = pd.read_csv("./modified-csv/sorted_book_ratings.csv")
+def findIndexLengthBooks(in_df):
+    df = pd.read_csv("./modified-csv/sorted_book_" + in_df + "_withID.csv")
 
     id_list = df.Book_ID.tolist()
 
@@ -73,11 +73,11 @@ def findIndexLengthBooks():
         else:
             main_dic[id_list[i+1]]["start"] = i+1
 
-    lb.write_dict(main_dic, "book-start-length")
+    lb.write_dict(main_dic, in_df + "-book-start-length")
     print(main_dic)
 
-def findIndexLengthUsers():
-    df = pd.read_csv("./modified-csv/sorted_user_ratings.csv")
+def findIndexLengthUsers(in_df):
+    df = pd.read_csv("./modified-csv/sorted_user_" + in_df + "_withID.csv")
 
     id_list = df.User_ID.tolist()
 
@@ -95,8 +95,15 @@ def findIndexLengthUsers():
         else:
             main_dic[id_list[i+1]]["start"] = i+1
 
-    lb.write_dict(main_dic, "user-start-length")
+    lb.write_dict(main_dic, in_df + "-user-start-length")
     print(main_dic)
+
+def minify(in_df):
+    replaceISBN(in_df)
+    sortDatasetBook(in_df)
+    findIndexLengthBooks(in_df)
+    sortDatasetUser(in_df)
+    findIndexLengthUsers(in_df)
 
 # replaceISBN()
 # sortDatasetBook()
