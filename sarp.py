@@ -8,21 +8,12 @@ import labeler as lb
 # from main.py import i   # book index I'm lookin for
 # from .similarity_finder import similarity_finder
 
-# import similarity_finder
-
 # sim_matrix = pd.read_cv("./ex.csv")
 
 # usr_dev = pd.read_csv("./usr_dev.csv")  # user deviation
 # bk_dev = pd.read_csv("./book_dev.csv")  # book deviation
 
 def generate_dev(df, u, user_distinct, book_distinct):
-
-    x_dict = {}
-    y_dict = {}
-
-    x_arr = []
-    y_arr = []
-
     book_dev = {}
     user_dev = {}
 
@@ -30,51 +21,28 @@ def generate_dev(df, u, user_distinct, book_distinct):
 
     ######## compress it all #########
 
-    # print(user_distinct)
-    # print("-------------")
-    # print(book_distinct)
-
     for item in book_distinct:
         sum = 0
         x_dict = {}
         for index, row in df.iterrows():
             if row["Book_ID"] == item:
                 x_dict[row["User_ID"]] = row["Rating"]
-                temp = row["User_ID"]
                 sum = sum + row["Rating"]
         book_dev[item] = sum/len(x_dict) - u
-        x_yarr[item] = sum/len(x_dict)
         # print(x_dict, sum/len(x_dict))
-
-    # print(u)
-    # print(book_dev)
-    # print(x_yarr)
 
     for item in user_distinct:
         sum = 0
         y_dict = {}
         for index, row in df.iterrows():
             if row["User_ID"] == item:
-                y_dict[row["Book_ID"]] = row["Rating"]
+                y_dict[row["Book_ID"]] = y_dict[row["Book_ID"]] + row["Rating"]
                 sum = sum + row["Rating"]
         user_dev[item] = sum/len(y_dict) - u
     
     # print(user_dev)
 
-    # print("book-rating by user", y_arr)
-    # print("+++++++++")
-    # print("book-rating by user", x_dict)
-
     return user_dev, book_dev
-
-def find_mean(_dict):
-    sum = 0
-    for i in _dict:  # iterate over keys
-        sum += _dict[i]
-
-    mean = sum/len(_dict)
-
-    return mean
 
 def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, i, u, index_len):
     
@@ -121,7 +89,7 @@ def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, 
     rxi = bxi
     if np.sum(total) != 0:
         rxi = rxi + np.sum(ctr) / np.sum(total)
-    # print(rxi)
+    print(rxi)
     return rxi
 
 def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
@@ -167,22 +135,35 @@ def conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u,
     print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
 
 def main():
-    train = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
+    # train = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
 
-    book_distinct = np.array([], dtype="int")
-    user_distinct = np.array([], dtype="int")
+    train = pd.read_csv("./partition/train1.csv", sep=",", low_memory=False)
+    test = pd.read_csv("./partition/test1.csv", sep=",", low_memory=False)
 
-    user_distinct = np.append(user_distinct, [train.iloc[0, 0]])
-    book_distinct = np.append(book_distinct, [train.iloc[0, 1]])
+    train.columns = ["User_ID", "Book_ID", "Rating"]
+    test.columns = ["User_ID", "Book_ID", "Rating"]
 
-    for i in range(0, train.shape[0]):
-        if train.iloc[i, 0] not in user_distinct:
-            user_distinct = np.append(user_distinct, [train.iloc[i, 0]])
-        if train.iloc[i, 1] not in book_distinct:
-            book_distinct = np.append(book_distinct, [train.iloc[i, 1]])
-    
-    book_distinct = np.sort(book_distinct)
-    user_distinct = np.sort(user_distinct)
+    # user_distinct = np.append(user_distinct, [train.iloc[0, 0]])
+    # book_distinct = np.append(book_distinct, [train.iloc[0, 1]])
+    # print(train.shape[0])
+    # for i in range(0, train.shape[0]):
+    #     if train.iloc[i, 0] not in user_distinct:
+    #         user_distinct = np.append(user_distinct, [train.iloc[i, 0]])
+    #     if train.iloc[i, 1] not in book_distinct:
+    #         book_distinct = np.append(book_distinct, [train.iloc[i, 1]])
+    #
+    # book_distinct = np.sort(book_distinct)
+    # user_distinct = np.sort(user_distinct)
+
+    bsl = lb.read_dict("./json-outputs/book-start-length.json")
+    usl = lb.read_dict("./json-outputs/user-start-length.json")
+
+    book_distinct = list(bsl.keys())
+    user_distinct = list(usl.keys())
+
+    book_distinct = list(map(int, book_distinct))
+    user_distinct = list(map(int, user_distinct))
+    print("Distinct finished")
 
     u = np.average(train.iloc[:, 2])
 
@@ -194,9 +175,10 @@ def main():
 
     # find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, 12, 5, u)
 
-    index_len = lb.read_dict("./json-outputs/train-start-length.json")
+    index_len = lb.read_dict("./json-outputs/book-start-length.json")
     # print(index_len)
-    conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, np.copy(train), u, index_len)
+    # conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, np.copy(train), u, index_len)
+    conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, index_len)
 
     # print(u)
 
