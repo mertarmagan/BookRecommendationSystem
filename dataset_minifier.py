@@ -55,7 +55,7 @@ def findIndexLengthExample():
     print(main_dic)
 
 def findIndexLengthBooks(in_df):
-    df = pd.read_csv("./modified-csv/sorted_book_" + in_df + "_withID.csv")
+    df = pd.read_csv("./modified-csv/sorted_book_" + in_df + ".csv")
 
     id_list = df.Book_ID.tolist()
 
@@ -74,10 +74,9 @@ def findIndexLengthBooks(in_df):
             main_dic[id_list[i+1]]["start"] = i+1
 
     lb.write_dict(main_dic, in_df + "-book-start-length")
-    print(main_dic)
 
 def findIndexLengthUsers(in_df):
-    df = pd.read_csv("./modified-csv/sorted_user_" + in_df + "_withID.csv")
+    df = pd.read_csv("./modified-csv/sorted_user_" + in_df + ".csv")
 
     id_list = df.User_ID.tolist()
 
@@ -96,7 +95,6 @@ def findIndexLengthUsers(in_df):
             main_dic[id_list[i+1]]["start"] = i+1
 
     lb.write_dict(main_dic, in_df + "-user-start-length")
-    print(main_dic)
 
 def minify(in_df):
     replaceISBN(in_df)
@@ -105,8 +103,9 @@ def minify(in_df):
     sortDatasetUser(in_df)
     findIndexLengthUsers(in_df)
 
-# replaceISBN()
-# sortDatasetBook()
+# minify("train1")
+# replaceISBN("train1")
+# sortDatasetBook("train1")
 # findIndexLengthBooks()
 # sortDatasetUser()
 # findIndexLengthUsers()

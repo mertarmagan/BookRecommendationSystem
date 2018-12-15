@@ -22,9 +22,8 @@ def user_counter():
     # print(_dict)
     # lbl.write_dict(_dict, "user-ratings-count")
 
-def user_rating_average():
-    ratings = read_ratings("./modified-csv/sorted_user_ratings.csv")
-
+def user_rating_average(in_df):
+    ratings = read_ratings("./modified-csv/sorted_user_"+in_df+".csv")
     users = ratings.iloc[:, 0:1]
     rats = ratings.iloc[:, 2:3]
 
@@ -68,8 +67,8 @@ def book_counter():
 
     print(len(_dict.keys()))
 
-def book_rating_average():
-    ratings = read_ratings("./modified-csv/sorted_book_ratings.csv")
+def book_rating_average(in_df):
+    ratings = read_ratings("./modified-csv/sorted_book_"+in_df+".csv")
 
     books = ratings.iloc[:, 1:2]
     rats = ratings.iloc[:, 2:3]
@@ -95,5 +94,5 @@ def book_rating_average():
     # print(main_dic[1])
     lbl.write_dict(main_dic, "books-average")
 
-# book_rating_average()
-# user_rating_average()
+# book_rating_average("train1")
+# user_rating_average("train1")
