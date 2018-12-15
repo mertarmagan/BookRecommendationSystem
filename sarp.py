@@ -13,33 +13,21 @@ import labeler as lb
 # usr_dev = pd.read_csv("./usr_dev.csv")  # user deviation
 # bk_dev = pd.read_csv("./book_dev.csv")  # book deviation
 
-def generate_dev(df, u, user_distinct, book_distinct):
+def generate_dev(df, glob_mean, user_distinct, book_distinct):
+    books_avg = lb.read_dict("./json-outputs/books-average.json")
+    users_avg = lb.read_dict("./json-outputs/users-average.json")
+
     book_dev = {}
     user_dev = {}
 
-    x_yarr = {}
-
-    ######## compress it all #########
-
     for item in book_distinct:
-        sum = 0
-        x_dict = {}
-        for index, row in df.iterrows():
-            if row["Book_ID"] == item:
-                x_dict[row["User_ID"]] = row["Rating"]
-                sum = sum + row["Rating"]
-        book_dev[item] = sum/len(x_dict) - u
+        book_dev[item] = books_avg[str(item)]["avg"] - glob_mean
         # print(x_dict, sum/len(x_dict))
 
     for item in user_distinct:
-        sum = 0
-        y_dict = {}
-        for index, row in df.iterrows():
-            if row["User_ID"] == item:
-                y_dict[row["Book_ID"]] = y_dict[row["Book_ID"]] + row["Rating"]
-                sum = sum + row["Rating"]
-        user_dev[item] = sum/len(y_dict) - u
-    
+        user_dev[item] = users_avg[str(item)]["avg"] - glob_mean
+
+    # print(glob_mean)
     # print(user_dev)
 
     return user_dev, book_dev
@@ -143,18 +131,6 @@ def main():
     train.columns = ["User_ID", "Book_ID", "Rating"]
     test.columns = ["User_ID", "Book_ID", "Rating"]
 
-    # user_distinct = np.append(user_distinct, [train.iloc[0, 0]])
-    # book_distinct = np.append(book_distinct, [train.iloc[0, 1]])
-    # print(train.shape[0])
-    # for i in range(0, train.shape[0]):
-    #     if train.iloc[i, 0] not in user_distinct:
-    #         user_distinct = np.append(user_distinct, [train.iloc[i, 0]])
-    #     if train.iloc[i, 1] not in book_distinct:
-    #         book_distinct = np.append(book_distinct, [train.iloc[i, 1]])
-    #
-    # book_distinct = np.sort(book_distinct)
-    # user_distinct = np.sort(user_distinct)
-
     bsl = lb.read_dict("./json-outputs/book-start-length.json")
     usl = lb.read_dict("./json-outputs/user-start-length.json")
 
@@ -163,15 +139,15 @@ def main():
 
     book_distinct = list(map(int, book_distinct))
     user_distinct = list(map(int, user_distinct))
-    print("Distinct finished")
+    print("Distinct job finished.")
 
     u = np.average(train.iloc[:, 2])
 
     # print(generate_dev(train, u))
 
-    dev = generate_dev(train, u, user_distinct, book_distinct)
-    book_dev = dev[1]
-    user_dev = dev[0]
+    book_dev, user_dev = generate_dev(train, u, user_distinct, book_distinct)
+
+    print("Generate dev finished.")
 
     # find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, 12, 5, u)
 

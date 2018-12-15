@@ -63,12 +63,6 @@ def find_similarity(x, y, df, index_len):  # index_len is json file
     for index, row in rat_y_df.iterrows():
         y_dict[row["User_ID"]] = row["Rating"]
 
-    # for index, row in df.iterrows():
-    #     if row["ISBN"] == x:
-    #         x_dict[row["User-ID"]] = row["Book-Rating"]
-    #     if row["ISBN"] == y:
-    #         y_dict[row["User-ID"]] = row["Book-Rating"]
-
     # print(x_dict)
     # print(y_dict)
 
@@ -116,43 +110,8 @@ def find_similarity(x, y, df, index_len):  # index_len is json file
     sum_x = sum_x ** (1/2)
     sum_y = sum_y ** (1/2)
 
-    # if sum_x == 0:
-    #     sum_x = 1
-    #
-    # if sum_y == 0:
-    #     sum_y = 1
-
     sim = sum / (sum_x * sum_y)
     return sim
-
-def generate_similarity_matrix():
-    isbn = lb.read_dict('./json-outputs/id-to-isbn.json')
-    ratings = read_train('./modified-csv/shuffled_ratings.csv')
-
-    pd.options.display.max_columns = len(isbn)
-    pd.options.display.max_rows = len(isbn)
-
-    m = []
-    r = []
-
-    for index, value in isbn.items():
-        for inner_index, inner_value in isbn.items():
-            if inner_index > index:
-                print(inner_value)
-                r.append(find_similarity(ratings, value, inner_value))
-                # df.iloc[int(index), int(inner_index)] =
-        m.append(r)
-
-    df = pd.DataFrame(m, columns=isbn.keys(), index=None)
-    # for i in range(1, 7):
-    #     for j in range(1, 7):
-    #         if j >= i:
-    #             print("sa")
-    #             df.iloc[i-1, j-1] = find_similarity(ratings, i, j)
-    #
-    # print(df)
-    df.to_csv("./similarity-matrix.csv", index=False, encoding="utf-8")
-
 
 def main():
     train = read_train("./ex_similarity/train.csv")
