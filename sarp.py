@@ -32,53 +32,84 @@ def generate_dev(df, glob_mean, user_distinct, book_distinct):
 
     return user_dev, book_dev
 
-def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, i, u, index_len):
+def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, i, u, usl, index_len):
     
     bxi = u + user_dev[x] + book_dev[i]
     
-    # print("bxi: ", bxi)
+    print(str(x))
+
+    start = usl[str(x)]["start"]
+    length = usl[str(x)]["length"]
+
+    book_ratings = train.iloc[start:start+length, 1:].values
+
+    # sims = np.array([[ None, None]])
+
     sum = 0
     total = 0
 
-    sims = np.array([[ None, None]])
+    for j in range(0, book_ratings.shape[0]):
+        sim = sim_find.find_similarity(i, j, train, index_len)
+        bxj = u + user_dev[x] + book_dev[book_ratings[j,0]]
+        rxj = book_ratings[j, 1]
+        if sim > 0:
+            # sims = np.append(sims, np.array([[sim, sum]]), axis=0)
+            sum = sum + (sim * (rxj - bxj))
+            total = total + sim
 
-    for item in book_distinct:
-        if item != i:
-            for index, user in train.iterrows():
-                if user["Book_ID"] == item and user["User_ID"] == x:
-                    # print(str(i), str(item), index_len)
-                    sim = sim_find.find_similarity(str(i), str(item), train, index_len)
-                    
-                    bxj = u + user_dev[x] + book_dev[item]
-                                        
-                    rxj = 0
-                    for index, row in train.iterrows():
-                        if row["User_ID"] == user["User_ID"] and row["Book_ID"] == item:
-                            rxj = row["Rating"]
-                            # print("user:", x, "book:", row["Book_ID"], "rxj: ", rxj)
+    # sims = np.delete(sims, 0, 0)
+    # k = int(sims.shape[0] / 2 + 1)
+    # # print("k", k)
+    # sims = sims[sims[:, 0].argsort()]
+    # total = sims[sims.shape[0]-k:sims.shape[0],0]
+    # ctr = sims[sims.shape[0]-k:sims.shape[0],1]
 
-                    sum = sum + (sim * (rxj - bxj))
-                    # print("sim: ",sim, " sum: ", sum)
-                    if sim > 0:
-                        sims = np.append(sims, np.array([[sim, sum]]), axis=0)
-                    # print("sim * (rxj -bxj)", "x", x, "j", item)
+    # print("bxi: ", bxi)
 
-        sum = 0
+    if total != 0:
+        rxi = bxi + sum/total
+    else:
+        rxi = bxi
 
-    sims = np.delete(sims, 0, 0)
-    k = int(sims.shape[0] / 2 + 1) 
-    # print("k", k)
-    sims = sims[sims[:, 0].argsort()]
-    total = sims[sims.shape[0]-k:sims.shape[0],0]
-    ctr = sims[sims.shape[0]-k:sims.shape[0],1]
-    # print("np.sum(ctr)", np.sum(ctr))
-    # print("np.sum(total)", np.sum(total))
-    
-    rxi = bxi
-    if np.sum(total) != 0:
-        rxi = rxi + np.sum(ctr) / np.sum(total)
-    print(rxi)
     return rxi
+
+    # for item in book_distinct:
+    #     if item != i:
+    #         for index, user in train.iterrows():
+    #             if user["Book_ID"] == item and user["User_ID"] == x:
+    #                 # print(str(i), str(item), index_len)
+    #                 sim = sim_find.find_similarity(str(i), str(item), train, index_len)
+                    
+    #                 bxj = u + user_dev[x] + book_dev[item]
+                                        
+    #                 rxj = 0
+    #                 for index, row in train.iterrows():
+    #                     if row["User_ID"] == user["User_ID"] and row["Book_ID"] == item:
+    #                         rxj = row["Rating"]
+    #                         # print("user:", x, "book:", row["Book_ID"], "rxj: ", rxj)
+
+    #                 sum = sum + (sim * (rxj - bxj))
+    #                 # print("sim: ",sim, " sum: ", sum)
+    #                 if sim > 0:
+    #                     sims = np.append(sims, np.array([[sim, sum]]), axis=0)
+    #                 # print("sim * (rxj -bxj)", "x", x, "j", item)
+
+    #     sum = 0
+
+    # sims = np.delete(sims, 0, 0)
+    # k = int(sims.shape[0] / 2 + 1)
+    # # print("k", k)
+    # sims = sims[sims[:, 0].argsort()]
+    # total = sims[sims.shape[0]-k:sims.shape[0],0]
+    # ctr = sims[sims.shape[0]-k:sims.shape[0],1]
+    # # print("np.sum(ctr)", np.sum(ctr))
+    # # print("np.sum(total)", np.sum(total))
+    
+    # rxi = bxi
+    # if np.sum(total) != 0:
+    #     rxi = rxi + np.sum(ctr) / np.sum(total)
+    # print(rxi)
+    # return rxi
 
 def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
 
@@ -94,12 +125,12 @@ def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
     print(rmse)
     return rmse
 
-def conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, index_len):
+def conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, usl, index_len):
 
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
     for i in range(test.shape[0]):
-        prediction[i] = find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, test[i, 0], test[i, 1], u, index_len)
+        prediction[i] = find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
 
     tp = 0
     tn = 0
@@ -154,7 +185,7 @@ def main():
     index_len = lb.read_dict("./json-outputs/book-start-length.json")
     # print(index_len)
     # conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, np.copy(train), u, index_len)
-    conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, index_len)
+    conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, usl, index_len)
 
     # print(u)
 
