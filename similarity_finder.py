@@ -155,18 +155,18 @@ def generate_similarity_matrix():
 
 
 def main():
-    # train = read_train("./ex_similarity/train.csv")
+    train = read_train("./ex_similarity/train.csv")
     # print(find_similarity(train, 1, 3))
     # generate_similarity_matrix()
 
     # df = pd.read_csv("./modified-csv/sorted_book_ratings.csv", sep=",", low_memory=False)
     # index_len = lb.read_dict("./json-outputs/book-start-length.json")
 
-    # df = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
-    # index_len = lb.read_dict("./json-outputs/train-start-length.json")
+    df = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
+    index_len = lb.read_dict("./json-outputs/train-start-length.json")
 
-    # for i in range(1, 7):
-    #     print(find_similarity(str(1), str(i), df, index_len))
+    for i in range(1, 7):
+        print((find_similarity(str(1), str(i), df, index_len)))
     return
 
 # main()
