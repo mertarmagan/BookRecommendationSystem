@@ -105,7 +105,7 @@ def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
     print(rmse)
     return rmse
 
-def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, th):
+def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold):
 
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
@@ -113,42 +113,43 @@ def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, th):
         prediction[i] = find_prediction(user_dev, book_dev, train, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
 
     print("Prediction finished!")
-    
-    tp = 0
-    tn = 0
-    fp = 0
-    fn = 0
 
-    th = 7
+    # th = 7
 
     precision = np.array([])
     recall = np.array([])
     accuracy = np.array([])
 
-    tp = 0
-    tn = 0
-    fp = 0
-    fn = 0
-    for i in range(prediction.shape[0]):
-        if prediction[i] >= th:
-            if test.iloc[i].Rating >= th:
-                tp = tp + 1
-                # print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i, 0], "book:", test[i, 1])
+    for j in range(1,10):
+        tp = 0
+        tn = 0
+        fp = 0
+        fn = 0
+
+        th = j
+        for i in range(prediction.shape[0]):
+            if prediction[i] >= th:
+                if test.iloc[i].Rating >= th:
+                    tp = tp + 1
+                    # print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i, 0], "book:", test[i, 1])
+                else:
+                    # print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i,0], "book:", test[i,1])
+                    fp = fp + 1
             else:
-                # print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i,0], "book:", test[i,1])
-                fp = fp + 1
-        else:
-            if test.iloc[i].Rating < th:
-                tn = tn + 1
-            else:
-                fn = fn + 1
+                if test.iloc[i].Rating < th:
+                    tn = tn + 1
+                else:
+                    fn = fn + 1
 
-    print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
+        print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
 
-    recall = tp / (tp + fn)
-    precision = tp / (tp + fp)
-    accuracy = (tp + tn) / (fp + fn + tp + tn)
+        recall = tp / (tp + fn)
+        precision = tp / (tp + fp)
+        accuracy = (tp + tn) / (fp + fn + tp + tn)
 
+        metric[th-1][fold-1][0] = recall
+        metric[th-1][fold-1][1] = precision
+        metric[th-1][fold-1][2] = accuracy
     # print("accuracy:", (tp+ tn) / (fp + fn + tp + tn))
     # print("precision:", (tp / (tp + fp)))
     # print("recall:", (tp / (tp + fn)))
@@ -159,7 +160,7 @@ def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, th):
     # plt.legend()
     # plt.show()
 
-    return np.array([accuracy, precision, recall])
+    return
 
 def main():
 
@@ -217,20 +218,39 @@ def main():
         bd_arr.append(book_dev)
         ud_arr.append(user_dev)
 
-    for th in range(1,11):
-        for fold in range(1, 11):
+    # for th in range(8,9):
+    metric = np.zeros(shape=(10, 10, 3), dtype="float")
+    for fold in range(1, 11):
 
-            print("Distinct job finished.")
+        print("One fold finished: ", fold)
 
-            # index_len = lb.read_dict("./json-outputs/book-start-length.json")
-            foldMetric = np.append(foldMetric, conf_matix(ud_arr[fold-1], bd_arr[fold-1], train_arr[fold-1], test_arr[fold-1], u_arr[fold-1], usl_arr[fold-1], bsl_arr[fold-1], th))
-            print("foldmetric:", foldMetric)
+        # index_len = lb.read_dict("./json-outputs/book-start-length.json")
+        conf_matix(ud_arr[fold-1], bd_arr[fold-1], train_arr[fold-1], test_arr[fold-1], u_arr[fold-1], usl_arr[fold-1], bsl_arr[fold-1], metric, fold)
 
-        avgAccuracy = np.average(foldMetric[1:,0:1])
-        avgPrecision = np.average(foldMetric[1:,1:2])
-        avgRecall = np.average(foldMetric[1:,2:3])
 
-        avgMetric = np.append(avgMetric, [avgAccuracy, avgPrecision, avgRecall])
-        print("avgmetric:", avgMetric)
+    # avgAccuracy = np.average(foldMetric[1:,0:1])
+    # avgPrecision = np.average(foldMetric[1:,1:2])
+    # avgRecall = np.average(foldMetric[1:,2:3])
 
+    # avgMetric = np.append(avgMetric, [avgAccuracy, avgPrecision, avgRecall])
+
+    avg_rec = []
+    avg_prec = []
+    avg_acc = []
+    for i in range(10):
+        sum_rec = 0
+        sum_prec = 0
+        sum_acc = 0
+        for j in range(10):
+            sum_rec += metric[i][j][0]
+            sum_prec += metric[i][j][1]
+            sum_acc += metric[i][j][2]
+        avg_rec.append(sum_rec/10)
+        avg_prec.append(sum_prec/10)
+        avg_acc.append(sum_acc/10)
+    
+    print("avg_rec: ", avg_rec)
+    print("avg_prec: ", avg_prec)
+    print("avg_acc: ", avg_acc)
+    
 main()
