@@ -48,6 +48,12 @@ def find_similarity(x, y, df, index_len):  # index_len is json file
     # df = pd.read_csv("./modified-csv/sorted_book_ratings.csv", sep=",", low_memory=False)
     # index_len = lb.read_dict("./json-outputs/book-start-length.json")
 
+    start_x = index_len.get(x, -1)
+    start_y = index_len.get(y, -1)
+
+    if start_x == -1 or start_y == -1:
+        return 0.0
+
     start_x = index_len[x]["start"]
     len_x = index_len[x]["length"]
 

@@ -3,6 +3,11 @@ import pandas as pd
 import math
 import similarity_finder as sim_find
 import labeler as lb
+import time
+import matplotlib.pyplot as plt
+import dataset_minifier as dm
+import kfold
+
 # from main.py import u   # Mean of every usr-book pair
 # from main.py import x   # user index I'm lookin for
 # from main.py import i   # book index I'm lookin for
@@ -34,12 +39,24 @@ def generate_dev(df, glob_mean, user_distinct, book_distinct):
 
 def find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, x, i, u, usl, index_len):
     
-    bxi = u + user_dev[x] + book_dev[i]
-    
-    print(str(x))
+    devUser = user_dev.get(x, -1)
+    if devUser == -1:
+        devUser = 0
 
-    start = usl[str(x)]["start"]
-    length = usl[str(x)]["length"]
+    devBook = book_dev.get(i, -1)
+    if devBook == -1:
+        devBook = 0
+
+    bxi = u + devUser + devBook
+    
+    start = usl.get(x, -1)
+
+    if start != -1:
+        start = usl[str(x)]["start"]
+        length = usl[str(x)]["length"]
+    else:
+        start = 0
+        length = 0
 
     book_ratings = train.iloc[start:start+length, 1:].values
 
@@ -125,74 +142,117 @@ def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
     print(rmse)
     return rmse
 
-def conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, usl, index_len):
+def conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, usl, index_len, th):
+
+    print(test.shape[0])
 
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
+    time2  = time.asctime(time.localtime(time.time()))
+
     for i in range(test.shape[0]):
         prediction[i] = find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
+        if i % 10000 == 0:
+            print(i, "-----", int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID))
+
+    print("Prediction finished!")
+    time3  = time.asctime(time.localtime(time.time()))
+    print(time2)
+    print(time3)
 
     tp = 0
     tn = 0
     fp = 0
     fn = 0
 
+    th = 7
+
+    precision = np.array([])
+    recall = np.array([])
+    accuracy = np.array([])
+
+    tp = 0
+    tn = 0
+    fp = 0
+    fn = 0
     for i in range(prediction.shape[0]):
-        if prediction[i] >= 6:
-            if test[i,2] >= 6:
+        if prediction[i] >= th:
+            if test.iloc[i].Rating >= th:
                 tp = tp + 1
                 # print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i, 0], "book:", test[i, 1])
             else:
                 # print("prediction:", prediction[i], "value:", test[i, 2], "user:", test[i,0], "book:", test[i,1])
                 fp = fp + 1
         else:
-            if test[i,2] < 6:
+            if test.iloc[i].Rating < th:
                 tn = tn + 1
             else:
                 fn = fn + 1
 
     print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
 
+    recall = tp / (tp + fn)
+    precision = tp / (tp + fp)
+    accuracy = (tp + tn) / (fp + fn + tp + tn)
+
+    # print("accuracy:", (tp+ tn) / (fp + fn + tp + tn))
+    # print("precision:", (tp / (tp + fp)))
+    # print("recall:", (tp / (tp + fn)))
+
+    # plt.plot([1,2,3,4,5,6,7,8,9,10], recall, label="recall")
+    # plt.plot([1,2,3,4,5,6,7,8,9,10], precision, label="precision")
+    # plt.plot([1,2,3,4,5,6,7,8,9,10], accuracy, label="accuracy")
+    # plt.legend()
+    # plt.show()
+
+    return np.array([accuracy, precision, recall])
+
 def main():
+
+    # kfold.main()
+
     # train = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
 
-    train = pd.read_csv("./partition/train1.csv", sep=",", low_memory=False)
-    test = pd.read_csv("./partition/test1.csv", sep=",", low_memory=False)
+    time1  = time.asctime(time.localtime(time.time()))
+    print(time1)
 
-    train.columns = ["User_ID", "Book_ID", "Rating"]
-    test.columns = ["User_ID", "Book_ID", "Rating"]
+    foldMetric = np.array([[ None, None, None]])
 
-    bsl = lb.read_dict("./json-outputs/book-start-length.json")
-    usl = lb.read_dict("./json-outputs/user-start-length.json")
+    for th in range(1,11):
+        for fold in range(1, 11):
 
-    book_distinct = list(bsl.keys())
-    user_distinct = list(usl.keys())
+            dm.minify("train" + str(fold))
+            dm.minify("test" + str(fold))
 
-    book_distinct = list(map(int, book_distinct))
-    user_distinct = list(map(int, user_distinct))
-    print("Distinct job finished.")
+            train = pd.read_csv("./modified-csv/train" + str(fold) + "_withID.csv", sep=",", low_memory=False)
+            test = pd.read_csv("./modified-csv/test" + str(fold) + "_withID.csv", sep=",", low_memory=False)
 
-    u = np.average(train.iloc[:, 2])
+            train.columns = ["User_ID", "Book_ID", "Rating"]
+            test.columns = ["User_ID", "Book_ID", "Rating"]
 
-    # print(generate_dev(train, u))
+            bsl = lb.read_dict("./json-outputs/book-start-length.json")
+            usl = lb.read_dict("./json-outputs/user-start-length.json")
 
-    book_dev, user_dev = generate_dev(train, u, user_distinct, book_distinct)
+            book_distinct = list(bsl.keys())
+            user_distinct = list(usl.keys())
 
-    print("Generate dev finished.")
+            book_distinct = list(map(int, book_distinct))
+            user_distinct = list(map(int, user_distinct))
+            print("Distinct job finished.")
 
-    # find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, 12, 5, u)
+            u = np.average(train.iloc[:, 2])
 
-    index_len = lb.read_dict("./json-outputs/book-start-length.json")
-    # print(index_len)
-    # conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, np.copy(train), u, index_len)
-    conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, usl, index_len)
+            book_dev, user_dev = generate_dev(train, u, user_distinct, book_distinct)
 
-    # print(u)
+            index_len = lb.read_dict("./json-outputs/book-start-length.json")
+            foldMetric = np.append(foldMetric, conf_matix(user_distinct, book_distinct, user_dev, book_dev, train, test, u, usl, index_len, th))
+            print("foldmetric:", foldMetric)
 
-    # print(find_similarity(train, 1, 2))
-    # find_prediction()
-    # similarity_finder()
-    # generate_devs()
-    # find_prediction()
+        avgAccuracy = np.average(foldMetric[1:,0:1])
+        avgPrecision = np.average(foldMetric[1:,1:2])
+        avgRecall = np.average(foldMetric[1:,2:3])
+
+        avgMetric = np.append(avgMetric, [avgAccuracy, avgPrecision, avgRecall])
+        print("avgmetric:", avgMetric)
 
 main()
