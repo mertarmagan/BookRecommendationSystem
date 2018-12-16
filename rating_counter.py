@@ -47,7 +47,7 @@ def user_rating_average(in_df):
 
     # print(len(main_dic.keys()))
     # print(main_dic[9])
-    lbl.write_dict(main_dic, "users-average")
+    lbl.write_dict(main_dic, in_df + "-users-average")
 
 def book_counter():
     ratings = read_ratings("./modified-csv/sorted_book_ratings.csv")
@@ -92,7 +92,7 @@ def book_rating_average(in_df):
 
     # print(len(main_dic.keys()))
     # print(main_dic[1])
-    lbl.write_dict(main_dic, "books-average")
+    lbl.write_dict(main_dic,  in_df + "-books-average")
 
 # book_rating_average("train1")
 # user_rating_average("train1")

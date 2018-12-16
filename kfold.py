@@ -11,8 +11,8 @@ def kfold_split(dataset, folds = 10):
         if i is not 0:
             train = pd.concat((train, df.iloc[0:int(i*fold_size), :]))
 
-        test.to_csv("./partition/test{}.csv".format(i+1), index=False, encoding="utf-8")
-        train.to_csv("./partition/train{}.csv".format(i+1), index=False, encoding="utf-8")
+        test.to_csv("./modified-csv/test{}.csv".format(i+1), index=False, encoding="utf-8")
+        train.to_csv("./modified-csv/train{}.csv".format(i+1), index=False, encoding="utf-8")
 
 def main():
     df = pd.read_csv("./modified-csv/shuffled_ratings.csv", sep=',', low_memory=False)
