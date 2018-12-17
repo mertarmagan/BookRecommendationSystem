@@ -91,21 +91,23 @@ def find_prediction(user_dev, book_dev, train, x, i, u, usl, index_len):
 
     return rxi
 
-def RMSE(user_distinct, book_distinct, user_dev, book_dev, train, test, u):
+def RMSE(prediction, test, rmse_arr, fold):
 
-    prediction = np.zeros(shape=(test.shape[0]), dtype="float")
+    for j in range(1,10):
 
-    for i in range(test.shape[0]):
-        prediction[i] = find_prediction(user_distinct, book_distinct, user_dev, book_dev, train, test[i, 0], test[i, 1], u)
+        mse = 0
+        th = j
 
-    for i in range(prediction.shape[0]):
-        mse = mse + (prediction[i] - test[i, 2]) ** 2
+        for i in range(prediction.shape[0]):
+            mse = mse + (prediction[i] - test.iloc[i].Rating) ** 2
+
+        rmse = math.sqrt(mse)
+        rmse_arr[fold-1] = rmse
     
-    rmse = math.sqrt(mse)
-    print(rmse)
-    return rmse
+    return
 
-def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold):
+
+def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold, rmse_arr):
 
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
@@ -141,7 +143,7 @@ def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold)
                 else:
                     fn = fn + 1
 
-        print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
+        # print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
 
         recall = tp / (tp + fn)
         precision = tp / (tp + fp)
@@ -150,23 +152,17 @@ def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold)
         metric[th-1][fold-1][0] = recall
         metric[th-1][fold-1][1] = precision
         metric[th-1][fold-1][2] = accuracy
-    # print("accuracy:", (tp+ tn) / (fp + fn + tp + tn))
-    # print("precision:", (tp / (tp + fp)))
-    # print("recall:", (tp / (tp + fn)))
+        print("Metrics finished! th:", j)
 
-    # plt.plot([1,2,3,4,5,6,7,8,9,10], recall, label="recall")
-    # plt.plot([1,2,3,4,5,6,7,8,9,10], precision, label="precision")
-    # plt.plot([1,2,3,4,5,6,7,8,9,10], accuracy, label="accuracy")
-    # plt.legend()
-    # plt.show()
+    RMSE(prediction, test, rmse_arr, fold)
+    print("RMSE Finished!")
+        
 
     return
 
 def main():
 
     kfold.main()
-
-    # train = pd.read_csv("./ex_similarity/sorted_train.csv", sep=",", low_memory=False)
 
     foldMetric = np.array([[ None, None, None]])
 
@@ -218,33 +214,37 @@ def main():
         bd_arr.append(book_dev)
         ud_arr.append(user_dev)
 
-    # for th in range(8,9):
+    print("Data manupilation finished!")
+
     metric = np.zeros(shape=(10, 10, 3), dtype="float")
+    rmse_arr = np.zeros(shape=(10), dtype="float")
+    
     for fold in range(1, 11):
 
-        print("One fold finished: ", fold)
+        print("Fold started: ", fold)
 
         # index_len = lb.read_dict("./json-outputs/book-start-length.json")
-        conf_matix(ud_arr[fold-1], bd_arr[fold-1], train_arr[fold-1], test_arr[fold-1], u_arr[fold-1], usl_arr[fold-1], bsl_arr[fold-1], metric, fold)
-
-
-    # avgAccuracy = np.average(foldMetric[1:,0:1])
-    # avgPrecision = np.average(foldMetric[1:,1:2])
-    # avgRecall = np.average(foldMetric[1:,2:3])
-
-    # avgMetric = np.append(avgMetric, [avgAccuracy, avgPrecision, avgRecall])
-
+        
+        conf_matix(ud_arr[fold-1], bd_arr[fold-1], train_arr[fold-1], test_arr[fold-1], u_arr[fold-1], usl_arr[fold-1], bsl_arr[fold-1], metric, fold, rmse_arr)
+        
     avg_rec = []
     avg_prec = []
     avg_acc = []
+    
+    avg_rmse =  np.average(rmse_arr)
+    
     for i in range(10):
+        
         sum_rec = 0
         sum_prec = 0
         sum_acc = 0
+        
         for j in range(10):
+            
             sum_rec += metric[i][j][0]
             sum_prec += metric[i][j][1]
             sum_acc += metric[i][j][2]
+        
         avg_rec.append(sum_rec/10)
         avg_prec.append(sum_prec/10)
         avg_acc.append(sum_acc/10)
@@ -252,5 +252,7 @@ def main():
     print("avg_rec: ", avg_rec)
     print("avg_prec: ", avg_prec)
     print("avg_acc: ", avg_acc)
+
+    print("avg_rmse: ", avg_rmse)
     
 main()
