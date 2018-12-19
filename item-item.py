@@ -102,6 +102,7 @@ def RMSE(prediction, test, rmse_arr, fold):
             mse = mse + (prediction[i] - test.iloc[i].Rating) ** 2
 
         rmse = math.sqrt(mse)
+        rmse = rmse / prediction.shape[0]
         rmse_arr[fold-1] = rmse
     
     return
