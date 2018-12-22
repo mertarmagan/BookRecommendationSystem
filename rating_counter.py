@@ -4,9 +4,21 @@ import labeler as lbl
 def read_ratings(path):
     return pd.read_csv(path, sep=',', low_memory=False)
 
+def find_mean(_dict):
+    sum = 0
+    for i in _dict:  # iterate over keys
+        sum += _dict[i]
+
+    mean = sum/len(_dict)
+
+    return mean
+
 def user_counter():
-    ratings = read_ratings()
-    users = ratings.iloc[:, 0:1]
+    ratings_tr = read_ratings("./modified-csv/train1_withID.csv")
+    ratings_tst = read_ratings("./modified-csv/test1_withID.csv")
+
+    ratings = pd.concat([ratings_tr, ratings_tst], ignore_index=True)
+    users = ratings.iloc[:, 0].to_frame()
 
     users_list = sorted(users["User_ID"].tolist())
     _dict = {}
@@ -18,9 +30,7 @@ def user_counter():
         else:
             _dict[i] = x + 1
 
-    print(len(_dict.keys()))
-    # print(_dict)
-    # lbl.write_dict(_dict, "user-ratings-count")
+    return find_mean(_dict)
 
 def user_rating_average(in_df):
     ratings = read_ratings("./modified-csv/sorted_user_"+in_df+".csv")
@@ -50,11 +60,13 @@ def user_rating_average(in_df):
     lbl.write_dict(main_dic, in_df + "-users-average")
 
 def book_counter():
-    ratings = read_ratings("./modified-csv/sorted_book_ratings.csv")
+    ratings_tr = read_ratings("./modified-csv/train1_withID.csv")
+    ratings_tst = read_ratings("./modified-csv/test1_withID.csv")
 
-    books = ratings.iloc[:, 1:2]
+    ratings = pd.concat([ratings_tr, ratings_tst], ignore_index=True)
+    books = ratings.iloc[:, 1].to_frame()
 
-    books_list = books["Book_ID"].tolist()
+    books_list = sorted(books["Book_ID"].tolist())
 
     _dict = {}
 
@@ -65,7 +77,7 @@ def book_counter():
         else:
             _dict[i] = x + 1
 
-    print(len(_dict.keys()))
+    return find_mean(_dict)
 
 def book_rating_average(in_df):
     ratings = read_ratings("./modified-csv/sorted_book_"+in_df+".csv")
@@ -94,5 +106,11 @@ def book_rating_average(in_df):
     # print(main_dic[1])
     lbl.write_dict(main_dic,  in_df + "-books-average")
 
+# Example Usage
 # book_rating_average("train1")
 # user_rating_average("train1")
+
+# u = user_counter()
+# print(u)
+# b = book_counter()
+# print(b)

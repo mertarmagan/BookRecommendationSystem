@@ -96,7 +96,7 @@ def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, index_l
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
     for i in range(test.shape[0]):
-        print("\tFold: ",fold," pred no: ",i)
+        # print("\tFold: ",fold," pred no: ",i)
         prediction[i] = find_prediction(user_dev, book_dev, train_user, train_book, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
 
     print("Prediction finished!")
@@ -128,7 +128,7 @@ def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, index_l
                 else:
                     fn = fn + 1
 
-        # print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
+        print("tp:", tp, "tn:", tn, "fp:", fp, "fn:", fn)
 
         recall = tp / (tp + fn)
         precision = tp / (tp + fp)
