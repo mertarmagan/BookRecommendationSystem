@@ -9,17 +9,7 @@ import dataset_minifier as dm
 import kfold
 import rating_counter as rc
 
-# from main.py import u   # Mean of every usr-book pair
-# from main.py import x   # user index I'm lookin for
-# from main.py import i   # book index I'm lookin for
-# from .similarity_finder import similarity_finder
-
-# sim_matrix = pd.read_cv("./ex.csv")
-
-# usr_dev = pd.read_csv("./usr_dev.csv")  # user deviation
-# bk_dev = pd.read_csv("./book_dev.csv")  # book deviation
-
-def generate_dev(df, glob_mean, user_distinct, book_distinct, fold):
+def generate_dev(glob_mean, user_distinct, book_distinct, fold):
     books_avg = lb.read_dict("./json-outputs/train" + str(fold) + "-books-average.json")
     users_avg = lb.read_dict("./json-outputs/train" + str(fold) + "-users-average.json")
 
@@ -33,12 +23,9 @@ def generate_dev(df, glob_mean, user_distinct, book_distinct, fold):
     for item in user_distinct:
         user_dev[item] = users_avg[str(item)]["avg"] - glob_mean
 
-    # print(glob_mean)
-    # print(user_dev)
-
     return user_dev, book_dev
 
-def find_prediction(user_dev, book_dev, train, x, i, u, usl, index_len):
+def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, index_len):
     
     devUser = user_dev.get(x, -1)
     if devUser == -1:
@@ -50,26 +37,28 @@ def find_prediction(user_dev, book_dev, train, x, i, u, usl, index_len):
 
     bxi = u + devUser + devBook
     
-    start = usl.get(x, -1)
+    info = usl.get(x, -1)
 
-    if start != -1:
-        start = usl[str(x)]["start"]
-        length = usl[str(x)]["length"]
+    if info != -1:
+        start = info["start"]
+        length = info["length"]
     else:
         start = 0
         length = 0
 
-    book_ratings = train.iloc[start:start+length, 1:].values
-
-    # sims = np.array([[ None, None]])
+    book_ratings = train_user.iloc[start:start+length].values
 
     sum = 0
     total = 0
-
     for j in range(0, book_ratings.shape[0]):
-        sim = sim_find.find_similarity(i, j, train, index_len)
-        bxj = u + user_dev[x] + book_dev[book_ratings[j,0]]
-        rxj = book_ratings[j, 1]
+        bookY = book_ratings[j, 1]
+        devBookY = user_dev.get(bookY, -1)
+        if devBookY == -1:
+            devBookY = 0
+
+        sim = sim_find.find_similarity(i, bookY, train_book, index_len, devBook+u, devBookY+u)
+        bxj = u + user_dev[x] + book_dev[bookY]
+        rxj = book_ratings[j, 2]
         if sim > 0:
             # sims = np.append(sims, np.array([[sim, sum]]), axis=0)
             sum = sum + (sim * (rxj - bxj))
@@ -92,28 +81,23 @@ def find_prediction(user_dev, book_dev, train, x, i, u, usl, index_len):
     return rxi
 
 def RMSE(prediction, test, rmse_arr, fold):
+    mse = 0
+    for i in range(prediction.shape[0]):
+        mse = mse + (prediction[i] - test.iloc[i].Rating) ** 2
 
-    for j in range(1,10):
-
-        mse = 0
-        th = j
-
-        for i in range(prediction.shape[0]):
-            mse = mse + (prediction[i] - test.iloc[i].Rating) ** 2
-
-        rmse = math.sqrt(mse)
-        rmse = rmse / prediction.shape[0]
-        rmse_arr[fold-1] = rmse
+    rmse = mse / prediction.shape[0]
+    rmse = math.sqrt(rmse)
+    rmse_arr[fold-1] = rmse
     
     return
 
-
-def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold, rmse_arr):
+def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, index_len, metric, fold, rmse_arr):
 
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
     for i in range(test.shape[0]):
-        prediction[i] = find_prediction(user_dev, book_dev, train, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
+        print("\tFold: ",fold," pred no: ",i)
+        prediction[i] = find_prediction(user_dev, book_dev, train_user, train_book, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
 
     print("Prediction finished!")
 
@@ -123,7 +107,7 @@ def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold,
     recall = np.array([])
     accuracy = np.array([])
 
-    for j in range(1,10):
+    for j in range(1, 10):
         tp = 0
         tn = 0
         fp = 0
@@ -157,17 +141,14 @@ def conf_matix(user_dev, book_dev, train, test, u, usl, index_len, metric, fold,
 
     RMSE(prediction, test, rmse_arr, fold)
     print("RMSE Finished!")
-        
 
     return
 
 def main():
+    # kfold.main()
 
-    kfold.main()
-
-    foldMetric = np.array([[ None, None, None]])
-
-    train_arr = []
+    train_user_arr = []
+    train_book_arr = []
     test_arr = []
 
     usl_arr = []
@@ -179,20 +160,24 @@ def main():
     u_arr = []
 
     for fold in range(1, 11):
+        print("Dataset modifying started for fold", fold)
 
-        dm.minify("train" + str(fold))
-        dm.minify("test" + str(fold))
+        # dm.minify("train" + str(fold))
+        # dm.minify("test" + str(fold))
+        #
+        # rc.user_rating_average("train" + str(fold))
+        # rc.book_rating_average("train" + str(fold))
 
-        rc.user_rating_average("train" + str(fold))
-        rc.book_rating_average("train" + str(fold))
+        train_user = pd.read_csv("./modified-csv/sorted_user_train" + str(fold) + ".csv", sep=",", low_memory=False)
+        train_book = pd.read_csv("./modified-csv/sorted_book_train" + str(fold) + ".csv", sep=",", low_memory=False)
+        test = pd.read_csv("./modified-csv/sorted_user_test" + str(fold) + ".csv", sep=",", low_memory=False)
 
-        train = pd.read_csv("./modified-csv/train" + str(fold) + "_withID.csv", sep=",", low_memory=False)
-        test = pd.read_csv("./modified-csv/test" + str(fold) + "_withID.csv", sep=",", low_memory=False)
-
-        train.columns = ["User_ID", "Book_ID", "Rating"]
+        train_user.columns = ["User_ID", "Book_ID", "Rating"]
+        train_book.columns = ["User_ID", "Book_ID", "Rating"]
         test.columns = ["User_ID", "Book_ID", "Rating"]
 
-        train_arr.append(train)
+        train_user_arr.append(train_user)
+        train_book_arr.append(train_book)
         test_arr.append(test)
 
         bsl = lb.read_dict("./json-outputs/train" + str(fold) + "-book-start-length.json")
@@ -207,15 +192,15 @@ def main():
         book_distinct = list(map(int, book_distinct))
         user_distinct = list(map(int, user_distinct))
 
-        u = np.average(train.iloc[:, 2])
+        u = np.average(train_user.iloc[:, 2])
         u_arr.append(u)
 
-        book_dev, user_dev = generate_dev(train, u, user_distinct, book_distinct, fold)
+        user_dev, book_dev = generate_dev(u, user_distinct, book_distinct, fold)
 
         bd_arr.append(book_dev)
         ud_arr.append(user_dev)
 
-    print("Data manupilation finished!")
+    print("Data manipulation finished!")
 
     metric = np.zeros(shape=(10, 10, 3), dtype="float")
     rmse_arr = np.zeros(shape=(10), dtype="float")
@@ -226,13 +211,13 @@ def main():
 
         # index_len = lb.read_dict("./json-outputs/book-start-length.json")
         
-        conf_matix(ud_arr[fold-1], bd_arr[fold-1], train_arr[fold-1], test_arr[fold-1], u_arr[fold-1], usl_arr[fold-1], bsl_arr[fold-1], metric, fold, rmse_arr)
+        conf_matix(ud_arr[fold-1], bd_arr[fold-1], train_user_arr[fold-1], train_book_arr[fold-1], test_arr[fold-1], u_arr[fold-1], usl_arr[fold-1], bsl_arr[fold-1], metric, fold, rmse_arr)
         
     avg_rec = []
     avg_prec = []
     avg_acc = []
     
-    avg_rmse =  np.average(rmse_arr)
+    avg_rmse = np.average(rmse_arr)
     
     for i in range(10):
         

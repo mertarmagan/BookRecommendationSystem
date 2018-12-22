@@ -1,17 +1,16 @@
+import math
 import pandas as pd
 import labeler as lb
+from timeit import default_timer as timer
 
-def read_train(path):
-    return pd.read_csv(path, sep=",", low_memory=False)
-
-def find_mean(_dict):
-    sum = 0
-    for i in _dict:  # iterate over keys
-        sum += _dict[i]
-
-    mean = sum/len(_dict)
-
-    return mean
+# def find_mean(_dict):
+#     sum = 0
+#     for i in _dict:  # iterate over keys
+#         sum += _dict[i]
+#
+#     mean = sum/len(_dict)
+#
+#     return mean
 
 def sample_generator():  # Example from slide 43
     sample = [["1", "1", 1], ["1", "3", 2], ["1", "6", 1],
@@ -27,9 +26,9 @@ def sample_generator():  # Example from slide 43
               ["11", "1", 4], ["11", "2", 1], ["11", "3", 5], ["11", "4", 2], ["11", "5", 2], ["11", "6", 4],
               ["12", "2", 3], ["12", "5", 5]]
 
-    df = pd.DataFrame(sample, columns=["User-ID", "ISBN", "Book-Rating"])
+    df = pd.DataFrame(sample, columns=["User_ID", "Book_ID", "Rating"])
     print("No. of rows: ", len(df))
-    df.to_csv("./ex_similarity/train.csv", index=False, encoding="utf-8")
+    df.to_csv("./ex_similarity/train_withID.csv", index=False, encoding="utf-8")
 
 def sample_generator2():  # Example from slide 37
     sample = [["1", "1", 4], ["1", "4", 5], ["1", "5", 1],
@@ -37,13 +36,14 @@ def sample_generator2():  # Example from slide 37
               ["3", "4", 2], ["3", "5", 4], ["3", "6", 5],
               ["4", "2", 3], ["4", "7", 3]]
 
-    df = pd.DataFrame(sample, columns=["User-ID", "ISBN", "Book-Rating"])
+    df = pd.DataFrame(sample, columns=["User_ID", "Book_ID", "Rating"])
     print("No. of rows: ", len(df))
-    df.to_csv("./ex_similarity/train2.csv", index=False, encoding="utf-8")
+    df.to_csv("./ex_similarity/train2_withID.csv", index=False, encoding="utf-8")
 
 
 # SIMILARITY OF USERS
-def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user DataFrame, user-start-length.json
+def find_similarity_user(x, y, df, index_len, meanX, meanY):  # User x, User y, sorted_user DataFrame, user-start-length.json
+    # start_time = timer()
     x_dict = {}
     y_dict = {}
 
@@ -51,21 +51,21 @@ def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user Da
     # print(index_len)
 
     # Searching the users' ratings
-    start_x = index_len.get(str(x), -1)
-    start_y = index_len.get(str(y), -1)
+    info_x = index_len.get(str(x), -1)
+    info_y = index_len.get(str(y), -1)
 
     # print("armagan:", start_x, start_y)
 
     # If one of the users doesn't have any ratings in our dataset
-    if start_x == -1 or start_y == -1:
+    if info_x == -1 or info_y == -1:
         return 0.0
 
     # DÜZELT STR(X) ve STR(Y) -> düz x ve y olmalı
-    start_x = index_len[str(x)]["start"]
-    len_x = index_len[str(x)]["length"]
+    start_x = info_x["start"]
+    len_x = info_x["length"]
 
-    start_y = index_len[str(y)]["start"]
-    len_y = index_len[str(y)]["length"]
+    start_y = info_y["start"]
+    len_y = info_y["length"]
 
     # Reading the whole ratings of each user
     rat_x_df = df.iloc[start_x:(start_x+len_x)]
@@ -86,32 +86,30 @@ def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user Da
             res_x_dict[item] = x_dict[item]
 
     # If no intersecting items found for two users
-    if len(res_x_dict) == 0 or len(res_y_dict) == 0: 
+    if len(res_x_dict) == 0 or len(res_y_dict) == 0:
         return 0
 
-    # print("dsadasdas")
     # print(res_x_dict)
     # print(res_y_dict)
 
-    # The mean of whole ratings of each user
-    mean_x = find_mean(x_dict)
-    mean_y = find_mean(y_dict)
-
-    # If one of the means comes 0, assign similarity as 0
-    if mean_x == 0 or mean_y == 0:
-        return 0
-
+    xFlag = False
     # Adjusting each user's all ratings(whole row)
     for i in x_dict:
         val = x_dict[i]
-        x_dict[i] = val - mean_x
+        x_dict[i] = val - meanX
+        if (val - meanX) != 0:
+            xFlag = True
 
+    yFlag = False
     for i in y_dict:
         val = y_dict[i]
-        y_dict[i] = val - mean_y
+        y_dict[i] = val - meanY
+        if (val - meanY) != 0:
+            yFlag = True
 
-    # print(x_dict)
-    # print(y_dict)
+    # If one of the adjusted means comes 0, assign similarity as 0
+    if xFlag == False or yFlag == False:
+        return 0
 
     sum = 0
     sum_x = 0
@@ -130,10 +128,13 @@ def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user Da
     sum_y = sum_y ** (1/2)
 
     sim = sum / (sum_x * sum_y)
+
+    # end_time = timer()
+    # print(end_time - start_time)
     return sim
 
 # SIMILARITY OF ITEMS
-def find_similarity(x, y, df, index_len):  # Book x, Book y, sorted_book DataFrame, book-start-length.json
+def find_similarity(x, y, df, index_len, meanX, meanY):  # Book x, Book y, sorted_book DataFrame, book-start-length.json
     x_dict = {}
     y_dict = {}
 
@@ -175,22 +176,24 @@ def find_similarity(x, y, df, index_len):  # Book x, Book y, sorted_book DataFra
     # print(res_x_dict)
     # print(res_y_dict)
 
-    mean_x = find_mean(x_dict)
-    mean_y = find_mean(y_dict)
-
-    if mean_x == 0 or mean_y == 0:
-        return 0
-
+    xFlag = False
+    # Adjusting each user's all ratings(whole row)
     for i in x_dict:
         val = x_dict[i]
-        x_dict[i] = val - mean_x
+        x_dict[i] = val - meanX
+        if (val - meanX) != 0:
+            xFlag = True
 
+    yFlag = False
     for i in y_dict:
         val = y_dict[i]
-        y_dict[i] = val - mean_y
+        y_dict[i] = val - meanY
+        if (val - meanY) != 0:
+            yFlag = True
 
-    # print(x_dict)
-    # print(y_dict)
+    # If one of the adjusted means comes 0, assign similarity as 0
+    if xFlag == False or yFlag == False:
+        return 0
 
     sum = 0
     sum_x = 0
@@ -212,7 +215,7 @@ def find_similarity(x, y, df, index_len):  # Book x, Book y, sorted_book DataFra
     return sim
 
 def main():
-    train = read_train("./ex_similarity/train.csv")
+    # train = read_train("./ex_similarity/train.csv")
     # print(find_similarity(train, 1, 3))
     # generate_similarity_matrix()
 

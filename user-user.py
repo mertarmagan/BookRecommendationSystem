@@ -3,8 +3,6 @@ import pandas as pd
 import math
 import similarity_finder as sim_find
 import labeler as lb
-import time
-import matplotlib.pyplot as plt
 import dataset_minifier as dm
 import kfold
 import rating_counter as rc
@@ -42,45 +40,35 @@ def generate_dev(glob_mean, user_distinct, book_distinct, fold):
     return user_dev, book_dev
 
 def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, index_len):
+    # x = user, i = book
     
     # print("test user,book:", x, ",", i)
+    devUserX = user_dev.get(x, -1)
+    if devUserX == -1:
+        devUserX = 0
 
-    devUser = user_dev.get(x, -1)
-    if devUser == -1:
-        devUser = 0
-
-    devBook = book_dev.get(i, -1)
-    if devBook == -1:
-        devBook = 0
-
-    # print("devUser:", devUser, "devBook:", devBook)
-
-    # bxi = u + devUser + devBook
-    
     #### key type check et
-    start = index_len.get(str(i), -1)
+    info = index_len.get(str(i), -1)
 
-    if start != -1:
-        start = index_len[str(i)]["start"]
-        length = index_len[str(i)]["length"]
+    if info != -1:
+        start = info["start"]
+        length = info["length"]
     else:
         start = 0
         length = 0
 
-    # print("start", start, "len:", length)
-
-    # book_ratings
     user_ratings = train_book.iloc[start:start+length].values
-
-    # print(user_ratings)
-
-    # sims = np.array([[ None, None]])
 
     sum = 0
     total = 0
-
+    # print(user_ratings.shape[0])
+    # for y in range(0, user_ratings.shape[0]):
     for y in range(0, user_ratings.shape[0]):
-        sim = sim_find.find_similarity_user(x, user_ratings[y, 0], train_user, usl)
+        devUserY = user_dev.get(user_ratings[y, 0], -1)
+        if devUserY == -1:
+            devUserY = 0
+
+        sim = sim_find.find_similarity_user(x, user_ratings[y, 0], train_user, usl, devUserX+u, devUserY+u)
         # print("user:", x, user_ratings[y, 0], "  sim:", sim)
         # bxj = u + user_dev[x] + book_dev[book_ratings[j,0]]
         ryi = user_ratings[y, 2]
@@ -100,14 +88,10 @@ def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, in
 
     if total != 0:
         rxi = sum/total
-
-    # RAPORA YAZILACAK
-    else:
-        # print("no intersection")
-        rxi = devUser + u
+    else: # RAPORA YAZILACAK
+        rxi = devUserX + u
 
     # print("user:", str(x), "book:", str(i), " prediction:", rxi)
-
     return rxi
 
 def RMSE(prediction, test, rmse_arr, fold):
@@ -125,8 +109,8 @@ def RMSE(prediction, test, rmse_arr, fold):
 def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, index_len, metric, fold, rmse_arr):
 
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
-
     for i in range(test.shape[0]):
+        print("\tFold: ",fold," pred no: ",i)
         prediction[i] = find_prediction(user_dev, book_dev, train_user, train_book, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
 
     print("Prediction finished!")
@@ -145,6 +129,7 @@ def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, index_l
         fn = 0
 
         th = j
+        print("\tThreshold:", th)
         for i in range(prediction.shape[0]):
             if prediction[i] >= th:
                 if test.iloc[i].Rating >= th:
@@ -221,8 +206,9 @@ def main():
 
     # print("RMSE:", rmse_arr[0])
     # print("metric:", metric[0])
-    
-    kfold.main()
+
+    ###########################################################################################################
+    # kfold.main()
 
     train_user_arr = []
     train_book_arr = []
@@ -237,37 +223,25 @@ def main():
     u_arr = []
 
     for fold in range(1, 11):
+        print("Dataset modifying started for fold", fold)
 
-        dm.minify("train" + str(fold))
-        dm.minify("test" + str(fold))
+        # dm.minify("train" + str(fold))
+        # dm.minify("test" + str(fold))
 
-        rc.user_rating_average("train" + str(fold))
-        rc.book_rating_average("train" + str(fold))
-
-        # train_user = pd.read_csv("./modified-csv/train" + str(fold) + "_withID.csv", sep=",", low_memory=False)
-        
-        # test = pd.read_csv("./modified-csv/test" + str(fold) + "_withID.csv", sep=",", low_memory=False)
+        # rc.user_rating_average("train" + str(fold))
+        # rc.book_rating_average("train" + str(fold))
 
         train_user = pd.read_csv("./modified-csv/sorted_user_train" + str(fold) + ".csv", sep=",", low_memory=False)
-        test = pd.read_csv("./modified-csv/sorted_user_test" + str(fold) + ".csv", sep=",", low_memory=False)
-        # test_user = pd.read_csv("./modified-csv/sorted_user_test" + str(fold) + ".csv", sep=",", low_memory=False)
-
         train_book = pd.read_csv("./modified-csv/sorted_book_train" + str(fold) + ".csv", sep=",", low_memory=False)
-        # test_book = pd.read_csv("./modified-csv/sorted_book_test" + str(fold) + ".csv", sep=",", low_memory=False)
+        test = pd.read_csv("./modified-csv/sorted_user_test" + str(fold) + ".csv", sep=",", low_memory=False)
 
         train_user.columns = ["User_ID", "Book_ID", "Rating"]
-        test.columns = ["User_ID", "Book_ID", "Rating"]
-        # test_user.columns = ["User_ID", "Book_ID", "Rating"]
-
         train_book.columns = ["User_ID", "Book_ID", "Rating"]
-        # test_book.columns = ["User_ID", "Book_ID", "Rating"]
+        test.columns = ["User_ID", "Book_ID", "Rating"]
 
         train_user_arr.append(train_user)
-        test_arr.append(test)
-        # test_user_arr.append(test_user)
-        
         train_book_arr.append(train_book)
-        # test_book_arr.append(test_book)
+        test_arr.append(test)
 
         bsl = lb.read_dict("./json-outputs/train" + str(fold) + "-book-start-length.json")
         usl = lb.read_dict("./json-outputs/train" + str(fold) + "-user-start-length.json")
@@ -293,7 +267,9 @@ def main():
 
     metric = np.zeros(shape=(10, 10, 3), dtype="float")
     rmse_arr = np.zeros(shape=(10), dtype="float")
-    
+
+    # print("SAAAA:", len(test_arr[0]))
+
     for fold in range(1, 11):
 
         print("Fold started: ", fold)
