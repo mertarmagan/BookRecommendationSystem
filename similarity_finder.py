@@ -41,7 +41,88 @@ def sample_generator2():  # Example from slide 37
     print("No. of rows: ", len(df))
     df.to_csv("./ex_similarity/train2.csv", index=False, encoding="utf-8")
 
-def find_similarity(x, y, df, index_len):  # index_len is json file
+
+# SIMILARITY OF USERS
+def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user DataFrame, user-start-length.json
+    x_dict = {}
+    y_dict = {}
+
+    # Searching the users' ratings
+    start_x = index_len.get(x, -1)
+    start_y = index_len.get(y, -1)
+
+    # If one of the users doesn't have any ratings in our dataset
+    if start_x == -1 or start_y == -1:
+        return 0.0
+
+    start_x = index_len[x]["start"]
+    len_x = index_len[x]["length"]
+
+    start_y = index_len[y]["start"]
+    len_y = index_len[y]["length"]
+
+    # Reading the whole ratings of each user
+    rat_x_df = df.iloc[start_x:(start_x+len_x)]
+    rat_y_df = df.iloc[start_y:(start_y+len_y)]
+
+    for index, row in rat_x_df.iterrows():
+        x_dict[row["Book_ID"]] = row["Rating"]
+
+    for index, row in rat_y_df.iterrows():
+        y_dict[row["Book_ID"]] = row["Rating"]
+
+    res_x_dict = {}
+    res_y_dict = {}
+    # Finding the intersecting books with their ratings
+    for item in x_dict.keys():
+        if item in y_dict:
+            res_y_dict[item] = y_dict[item]
+            res_x_dict[item] = x_dict[item]
+
+    # print(res_x_dict)
+    # print(res_y_dict)
+
+    # The mean of whole ratings of each user
+    mean_x = find_mean(x_dict)
+    mean_y = find_mean(y_dict)
+
+    # If one of the means comes 0, assign similarity as 0
+    if mean_x == 0 or mean_y == 0:
+        return 0
+
+    # Adjusting each user's all ratings(whole row)
+    for i in x_dict:
+        val = x_dict[i]
+        x_dict[i] = val - mean_x
+
+    for i in y_dict:
+        val = y_dict[i]
+        y_dict[i] = val - mean_y
+
+    # print(x_dict)
+    # print(y_dict)
+
+    sum = 0
+    sum_x = 0
+    sum_y = 0
+
+    for i in x_dict:
+        sum_x += x_dict[i] ** 2
+
+    for i in y_dict:
+        sum_y += y_dict[i] ** 2
+
+    for i in res_x_dict:
+        sum += x_dict[i] * y_dict[i]
+
+    sum_x = sum_x ** (1/2)
+    sum_y = sum_y ** (1/2)
+
+    sim = sum / (sum_x * sum_y)
+    return sim
+
+# SIMILARITY OF ITEMS
+def find_similarity(x, y, df, index_len):  # Book x, Book y, sorted_book DataFrame, book-start-length.json
     x_dict = {}
     y_dict = {}
 

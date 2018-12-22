@@ -10,13 +10,10 @@ def read_ratings(path):
 def main():
     ratings = read_ratings("./modified-csv/modified_ratings.csv")
     # ratings.to_csv("./modified-csv/modified_ratings.csv", index=False, encoding="utf-8")
-    # return
-    # ratings = ratings.sample(frac=1, replace=True)
     # ratings.reindex(np.random.permutation(ratings.index))
 
     # ratings = shuffle(ratings)
 
-    # ratings.to_csv("./shuffled_ratings.csv", index=False, encoding="utf-8", quoting=csv.QUOTE_NONE, quotechar="", escapechar="\\")
     # ratings.to_csv("./shuffled_ratings.csv", index=False, encoding="utf-8", quoting=csv.QUOTE_NONE, quotechar="", escapechar="\\")
 
     # shuffle = read_ratings("./shuffled_ratings.csv")
@@ -34,7 +31,6 @@ def main():
 
     new_df = pd.DataFrame(_list, columns=['User-ID', 'ISBN', 'Book-Rating'])
 
-    # print(new_df.head())
     # print(len(new_df))
     new_df.to_csv("./modified-csv/modified_ratings.csv", index=True, encoding="utf-8")
     return
