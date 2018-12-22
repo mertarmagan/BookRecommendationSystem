@@ -47,19 +47,25 @@ def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user Da
     x_dict = {}
     y_dict = {}
 
+    # print("xy", index_len[str(x)], index_len[str(y)])
+    # print(index_len)
+
     # Searching the users' ratings
-    start_x = index_len.get(x, -1)
-    start_y = index_len.get(y, -1)
+    start_x = index_len.get(str(x), -1)
+    start_y = index_len.get(str(y), -1)
+
+    # print("armagan:", start_x, start_y)
 
     # If one of the users doesn't have any ratings in our dataset
     if start_x == -1 or start_y == -1:
         return 0.0
 
-    start_x = index_len[x]["start"]
-    len_x = index_len[x]["length"]
+    # DÜZELT STR(X) ve STR(Y) -> düz x ve y olmalı
+    start_x = index_len[str(x)]["start"]
+    len_x = index_len[str(x)]["length"]
 
-    start_y = index_len[y]["start"]
-    len_y = index_len[y]["length"]
+    start_y = index_len[str(y)]["start"]
+    len_y = index_len[str(y)]["length"]
 
     # Reading the whole ratings of each user
     rat_x_df = df.iloc[start_x:(start_x+len_x)]
@@ -79,6 +85,11 @@ def find_similarity_user(x, y, df, index_len):  # User x, User y, sorted_user Da
             res_y_dict[item] = y_dict[item]
             res_x_dict[item] = x_dict[item]
 
+    # If no intersecting items found for two users
+    if len(res_x_dict) == 0 or len(res_y_dict) == 0: 
+        return 0
+
+    # print("dsadasdas")
     # print(res_x_dict)
     # print(res_y_dict)
 
