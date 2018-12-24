@@ -37,7 +37,7 @@ def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, in
 
     bxi = u + devUser + devBook
     
-    info = usl.get(x, -1)
+    info = usl.get(str(x), -1)
 
     if info != -1:
         start = info["start"]
@@ -45,6 +45,12 @@ def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, in
     else:
         start = 0
         length = 0
+
+    # print(x, devUser)
+    # print(i, devBook)
+    # print(start)
+    # print(length)
+    # quit()
 
     book_ratings = train_user.iloc[start:start+length].values
 
@@ -60,6 +66,7 @@ def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, in
         bxj = u + user_dev[x] + book_dev[bookY]
         rxj = book_ratings[j, 2]
         if sim > 0:
+            # print(sim)
             # sims = np.append(sims, np.array([[sim, sum]]), axis=0)
             sum = sum + (sim * (rxj - bxj))
             total = total + sim
@@ -96,7 +103,7 @@ def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, index_l
     prediction = np.zeros(shape=(test.shape[0]), dtype="float")
 
     for i in range(test.shape[0]):
-        # print("\tFold: ",fold," pred no: ",i)
+        print("\tFold: ",fold," pred no: ",i)
         prediction[i] = find_prediction(user_dev, book_dev, train_user, train_book, int(test.iloc[i].User_ID), int(test.iloc[i].Book_ID), u, usl, index_len)
 
     print("Prediction finished!")
@@ -159,7 +166,8 @@ def main():
 
     u_arr = []
 
-    for fold in range(1, 11):
+    # TODO: MINIMIZED TO 1 FOLD
+    for fold in range(1, 2):
         print("Dataset modifying started for fold", fold)
 
         # dm.minify("train" + str(fold))
@@ -171,6 +179,9 @@ def main():
         train_user = pd.read_csv("./modified-csv/sorted_user_train" + str(fold) + ".csv", sep=",", low_memory=False)
         train_book = pd.read_csv("./modified-csv/sorted_book_train" + str(fold) + ".csv", sep=",", low_memory=False)
         test = pd.read_csv("./modified-csv/sorted_user_test" + str(fold) + ".csv", sep=",", low_memory=False)
+
+        # TODO: MINIMIZING TEST DATA TO 2000
+        test = test.iloc[:2000]
 
         train_user.columns = ["User_ID", "Book_ID", "Rating"]
         train_book.columns = ["User_ID", "Book_ID", "Rating"]
@@ -204,8 +215,9 @@ def main():
 
     metric = np.zeros(shape=(10, 10, 3), dtype="float")
     rmse_arr = np.zeros(shape=(10), dtype="float")
-    
-    for fold in range(1, 11):
+
+    # TODO: MINIMIZED RANGE FOR 1 FOLD
+    for fold in range(1, 2):
 
         print("Fold started: ", fold)
 
@@ -218,7 +230,7 @@ def main():
     avg_acc = []
     
     avg_rmse = np.average(rmse_arr)
-    
+
     for i in range(10):
         
         sum_rec = 0
@@ -230,10 +242,11 @@ def main():
             sum_rec += metric[i][j][0]
             sum_prec += metric[i][j][1]
             sum_acc += metric[i][j][2]
-        
-        avg_rec.append(sum_rec/10)
-        avg_prec.append(sum_prec/10)
-        avg_acc.append(sum_acc/10)
+
+        # TODO: DIVIDED TO FOLD COUNT
+        avg_rec.append(sum_rec/1)
+        avg_prec.append(sum_prec/1)
+        avg_acc.append(sum_acc/1)
     
     print("avg_rec: ", avg_rec)
     print("avg_prec: ", avg_prec)
