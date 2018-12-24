@@ -5,9 +5,41 @@ import rating_counter as rc
 import similarity_finder as sf
 import labeler as lb
 
+def trainAppend(new_df):
+    isbn_list = new_df.iloc[:, 1].tolist()
+    # print(isbn_list)
+
+    old = pd.read_csv("./modified-csv/train1.csv", sep=",", low_memory=False)
+    final_df = pd.concat([old, new_df])
+    # print(final_df.shape)
+    # print(final_df.tail())
+
+    final_df.to_csv("./modified-csv/train1_demo.csv", index=False, encoding="utf-8")
+
+    return isbn_list
+
+def modifyTest(isbn_list):
+    test = pd.read_csv("./modified-csv/test1.csv", sep=",", low_memory=False)
+    # test.columns = ["User_ID", "Book_ID", "Rating"]
+    test.loc[test['User-ID'] < 999999, 'User-ID'] = 999999
+
+    drop_list = []
+    for index, row in test.iterrows():
+        if row["ISBN"] in isbn_list:
+            drop_list.append(index)
+    
+    # print(test.shape[0])
+
+    test = test.drop(drop_list, axis=0)
+
+    # print(test.shape[0])
+
+    test.to_csv("./modified-csv/test1_modified.csv", index=False, encoding="utf-8")
+    return
+
 def generate_dev(glob_mean, user_distinct, book_distinct):
-    books_avg = lb.read_dict("./json-outputs/train1-books-average.json")
-    users_avg = lb.read_dict("./json-outputs/train1-users-average.json")
+    books_avg = lb.read_dict("./json-outputs/train1_demo-books-average.json")
+    users_avg = lb.read_dict("./json-outputs/train1_demo-users-average.json")
 
     book_dev = {}
     user_dev = {}
@@ -68,7 +100,6 @@ def find_prediction(user_dev, book_dev, train_user, train_book, x, i, u, usl, in
 
 def conf_matix(user_dev, book_dev, train_user, train_book, test, u, usl, bsl):
 
-    # prediction = np.zeros(shape=(test.shape[0]), dtype="float")
     id_arr = np.zeros(shape=(5), dtype="int")
     count = 0
 
@@ -106,22 +137,27 @@ def converter(id_arr):
 
 def main():
 
-    # dm.minify("train1")
-    # dm.minify("test1_copy_modified")
-    
-    # rc.user_rating_average("train1")
-    # rc.book_rating_average("train1")
+    new_df = pd.read_csv("./modified-csv/new.csv", sep=",", low_memory=False, dtype="str")
 
-    train_user = pd.read_csv("./modified-csv/sorted_user_train1.csv", sep=",", low_memory=False)
-    train_book = pd.read_csv("./modified-csv/sorted_book_train1.csv", sep=",", low_memory=False)
-    test = pd.read_csv("./modified-csv/sorted_user_test1_copy_modified.csv", sep=",", low_memory=False)
+    isbn_list = trainAppend(new_df)
+    modifyTest(isbn_list)
+
+    dm.minify("train1_demo")
+    dm.minify("test1_modified")
+    
+    rc.user_rating_average("train1_demo")
+    rc.book_rating_average("train1_demo")
+
+    train_user = pd.read_csv("./modified-csv/sorted_user_train1_demo.csv", sep=",", low_memory=False)
+    train_book = pd.read_csv("./modified-csv/sorted_book_train1_demo.csv", sep=",", low_memory=False)
+    test = pd.read_csv("./modified-csv/sorted_user_test1_modified.csv", sep=",", low_memory=False)
 
     train_user.columns = ["User_ID", "Book_ID", "Rating"]
     train_book.columns = ["User_ID", "Book_ID", "Rating"]
     test.columns = ["User_ID", "Book_ID", "Rating"]
 
-    bsl = lb.read_dict("./json-outputs/train1-book-start-length.json")
-    usl = lb.read_dict("./json-outputs/train1-user-start-length.json")
+    bsl = lb.read_dict("./json-outputs/train1_demo-book-start-length.json")
+    usl = lb.read_dict("./json-outputs/train1_demo-user-start-length.json")
 
     book_distinct = list(bsl.keys())
     user_distinct = list(usl.keys())
