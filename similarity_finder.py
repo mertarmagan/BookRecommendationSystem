@@ -138,23 +138,30 @@ def find_similarity(x, y, df, index_len, meanX, meanY):  # Book x, Book y, sorte
     x_dict = {}
     y_dict = {}
 
+    # print(x, y, meanX, meanY)
     # df = pd.read_csv("./modified-csv/sorted_book_ratings.csv", sep=",", low_memory=False)
     # index_len = lb.read_dict("./json-outputs/book-start-length.json")
 
-    start_x = index_len.get(x, -1)
-    start_y = index_len.get(y, -1)
+    start_x = index_len.get(str(x), -1)
+    start_y = index_len.get(str(y), -1)
+
+    # print(start_x)
+    # print(start_y)
 
     if start_x == -1 or start_y == -1:
         return 0.0
 
-    start_x = index_len[x]["start"]
-    len_x = index_len[x]["length"]
+    start_x = index_len[str(x)]["start"]
+    len_x = index_len[str(x)]["length"]
 
-    start_y = index_len[y]["start"]
-    len_y = index_len[y]["length"]
+    start_y = index_len[str(y)]["start"]
+    len_y = index_len[str(y)]["length"]
 
     rat_x_df = df.iloc[start_x:(start_x+len_x)]
     rat_y_df = df.iloc[start_y:(start_y+len_y)]
+
+    # print(rat_x_df)
+    # print(rat_y_df)
 
     for index, row in rat_x_df.iterrows():
         x_dict[row["User_ID"]] = row["Rating"]
